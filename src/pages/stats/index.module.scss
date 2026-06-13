@@ -1,0 +1,203 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 120rpx;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  padding: $spacing-lg $page-padding;
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.1) 0%, $color-bg-page 100%);
+}
+
+.tabBar {
+  display: flex;
+  margin: 0 $page-padding;
+  background-color: $color-bg-card;
+  border-radius: $radius-button;
+  border: 2rpx solid $color-border;
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.tabBtn {
+  @include button-reset;
+  flex: 1;
+  min-width: 120rpx;
+  padding: $spacing-md $spacing-sm;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+  white-space: nowrap;
+
+  &.active {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+    color: $color-text-white;
+  }
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.listSection {
+  padding: $spacing-lg $page-padding;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+}
+
+.statList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.statInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.statName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.statCounts {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-xs;
+}
+
+.statCount {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.statValue {
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: $spacing-md;
+}
+
+.statPrice {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-price;
+}
+
+.statPercent {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8rpx;
+  background-color: $color-bg-hover;
+  border-radius: $radius-round;
+  margin-top: $spacing-sm;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-round;
+  transition: width $transition-base;
+}
+
+.trendChart {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.trendHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+}
+
+.trendTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.trendBars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 300rpx;
+  gap: $spacing-xs;
+}
+
+.trendBarItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.trendBar {
+  width: 100%;
+  background: linear-gradient(180deg, $color-primary 0%, $color-primary-dark 100%);
+  border-radius: $radius-sm $radius-sm 0 0;
+  min-height: 8rpx;
+  transition: height $transition-base;
+}
+
+.trendBarLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.trendBarValue {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl * 2;
+}
+
+.emptyIcon {
+  font-size: 120rpx;
+  margin-bottom: $spacing-md;
+  opacity: 0.3;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}

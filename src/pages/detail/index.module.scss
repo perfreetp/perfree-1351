@@ -1,0 +1,332 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 120rpx;
+}
+
+.photoSwiper {
+  width: 100%;
+  height: 600rpx;
+  background-color: $color-bg-card;
+}
+
+.swiperImage {
+  width: 100%;
+  height: 100%;
+}
+
+.infoSection {
+  padding: $spacing-lg $page-padding;
+  background-color: $color-bg-card;
+  margin-top: -$radius-xl;
+  border-radius: $radius-xl $radius-xl 0 0;
+  position: relative;
+}
+
+.nameRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-md;
+}
+
+.characterName {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  flex: 1;
+  margin-right: $spacing-md;
+}
+
+.statusTags {
+  display: flex;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.statusTag {
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+
+  &.unboxed {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: $color-success;
+  }
+
+  &.sealed {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: $color-info;
+  }
+
+  &.pending {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: $color-warning;
+  }
+
+  &.flaw {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: $color-error;
+  }
+}
+
+.seriesName {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-md;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.metaLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.metaValue {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.price {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-price;
+}
+
+.notes {
+  margin-top: $spacing-lg;
+  padding-top: $spacing-lg;
+  border-top: 2rpx solid $color-border;
+}
+
+.notesLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-sm;
+}
+
+.notesContent {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  line-height: $line-height-normal;
+}
+
+.tabBar {
+  display: flex;
+  margin: $spacing-lg $page-padding 0;
+  background-color: $color-bg-card;
+  border-radius: $radius-button;
+  border: 2rpx solid $color-border;
+  overflow: hidden;
+}
+
+.tabBtn {
+  @include button-reset;
+  flex: 1;
+  padding: $spacing-md;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+
+  &.active {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+    color: $color-text-white;
+  }
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.listSection {
+  padding: $spacing-lg $page-padding;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.recordCard {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.recordHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+
+.recordDate {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.recordType {
+  display: inline-block;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+
+  &.dust {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: $color-info;
+  }
+
+  &.light_protection {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: $color-warning;
+  }
+
+  &.other {
+    background-color: rgba(124, 58, 237, 0.2);
+    color: $color-primary-light;
+  }
+}
+
+.recordDesc {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  line-height: $line-height-normal;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+
+  &.pending {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: $color-error;
+  }
+
+  &.resolved {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: $color-success;
+  }
+
+  &.received {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: $color-success;
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl * 2;
+}
+
+.emptyIcon {
+  font-size: 120rpx;
+  margin-bottom: $spacing-md;
+  opacity: 0.3;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.actionBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-md $page-padding;
+  padding-bottom: calc($spacing-md + env(safe-area-inset-bottom));
+  background-color: $color-bg-card;
+  border-top: 2rpx solid $color-border;
+  display: flex;
+  gap: $spacing-md;
+}
+
+.actionBtn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-md;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  &.primary {
+    background: linear-gradient(135deg, $color-gold 0%, $color-gold-light 100%);
+    color: $color-text-white;
+    border: none;
+  }
+
+  &.secondary {
+    background-color: $color-bg-hover;
+    color: $color-text-primary;
+    border: 2rpx solid $color-border;
+  }
+
+  &.danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: $color-error;
+    border: 2rpx solid rgba(239, 68, 68, 0.3);
+  }
+}
+
+.swiperIndicator {
+  position: absolute;
+  bottom: $spacing-md;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: $radius-round;
+}
+
+.indicatorDot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: $radius-round;
+  background-color: rgba(255, 255, 255, 0.5);
+
+  &.active {
+    width: 24rpx;
+    background-color: $color-text-white;
+  }
+}
+
+.photoContainer {
+  position: relative;
+  width: 100%;
+  height: 600rpx;
+}

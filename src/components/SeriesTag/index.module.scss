@@ -1,0 +1,46 @@
+@use '@/styles/variables.scss' as *;
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background-color: $color-bg-card;
+  border-radius: $radius-button;
+  border: 2rpx solid $color-border;
+  transition: all $transition-base;
+  white-space: nowrap;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  &.active {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+    border-color: $color-primary;
+  }
+}
+
+.name {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+
+  .active & {
+    color: $color-text-white;
+  }
+}
+
+.count {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  background-color: $color-bg-tag;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-round;
+
+  .active & {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: $color-text-white;
+  }
+}

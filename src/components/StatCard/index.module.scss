@@ -1,0 +1,51 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+  border-left: 6rpx solid $color-primary;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  &.primary {
+    border-left-color: $color-primary;
+  }
+
+  &.success {
+    border-left-color: $color-success;
+  }
+
+  &.warning {
+    border-left-color: $color-warning;
+  }
+
+  &.error {
+    border-left-color: $color-error;
+  }
+}
+
+.title {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.value {
+  display: block;
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-top: $spacing-sm;
+}
+
+.subtitle {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+}

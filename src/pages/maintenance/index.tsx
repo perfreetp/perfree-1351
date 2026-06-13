@@ -1,0 +1,265 @@
+import React, { useState, useMemo } from 'react';
+import { View, Text, Button, ScrollView } from '@tarojs/components';
+import Taro, { usePullDownRefresh } from '@tarojs/taro';
+import classnames from 'classnames';
+import styles from './index.module.scss';
+import { useCollection } from '../../store/CollectionContext';
+import { getDaysUntil, getMaintenanceTypeText, getFlawStatusText, getPartStatusText } from '../../utils';
+
+const MaintenancePage: React.FC = () => {
+  const { collections, reminders, completeMaintenance } = useCollection();
+  const [activeTab, setActiveTab] = useState<'history' | 'flaws' | 'parts'>('history');
+
+  const urgentReminders = useMemo(() => {
+    return reminders
+      .filter(r => getDaysUntil(r.nextDate) <= 7)
+      .sort((a, b) => getDaysUntil(a.nextDate) - getDaysUntil(b.nextDate));
+  }, [reminders]);
+
+  const maintenanceHistory = useMemo(() => {
+    const allRecords: Array<{
+      id: string;
+      collectionId: string;
+      collectionName: string;
+      date: string;
+      type: string;
+      description: string;
+    }> = [];
+    
+    collections.forEach(item => {
+      item.maintenanceRecords.forEach(record => {
+        allRecords.push({
+          id: record.id,
+          collectionId: item.id,
+          collectionName: item.characterName,
+          date: record.date,
+          type: record.type,
+          description: record.description
+        });
+      });
+    });
+    
+    return allRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [collections]);
+
+  const flawRecords = useMemo(() => {
+    const allFlaws: Array<{
+      id: string;
+      collectionId: string;
+      collectionName: string;
+      date: string;
+      description: string;
+      status: string;
+    }> = [];
+    
+    collections.forEach(item => {
+      item.flaws.forEach(flaw => {
+        allFlaws.push({
+          id: flaw.id,
+          collectionId: item.id,
+          collectionName: item.characterName,
+          date: flaw.date,
+          description: flaw.description,
+          status: flaw.status
+        });
+      });
+    });
+    
+    return allFlaws.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [collections]);
+
+  const partRecords = useMemo(() => {
+    const allParts: Array<{
+      id: string;
+      collectionId: string;
+      collectionName: string;
+      applyDate: string;
+      receivedDate?: string;
+      description: string;
+      status: string;
+    }> = [];
+    
+    collections.forEach(item => {
+      item.replacementParts.forEach(part => {
+        allParts.push({
+          id: part.id,
+          collectionId: item.id,
+          collectionName: item.characterName,
+          applyDate: part.applyDate,
+          receivedDate: part.receivedDate,
+          description: part.description,
+          status: part.status
+        });
+      });
+    });
+    
+    return allParts.sort((a, b) => new Date(b.applyDate).getTime() - new Date(a.applyDate).getTime());
+  }, [collections]);
+
+  const handleCompleteReminder = (reminderId: string) => {
+    completeMaintenance(reminderId);
+    Taro.showToast({ title: '已完成保养', icon: 'success' });
+  };
+
+  const getReminderIcon = (type: string) => {
+    return type === 'dust' ? '🧹' : '☀️';
+  };
+
+  usePullDownRefresh(() => {
+    console.log('[Maintenance] Pull down refresh');
+    setTimeout(() => {
+      Taro.stopPullDownRefresh();
+    }, 1000);
+  });
+
+  return (
+    <View className={styles.page}>
+      <View className={styles.reminderSection}>
+        <Text className={styles.sectionTitle}>待办提醒</Text>
+        {urgentReminders.length > 0 ? (
+          <View className={styles.reminderList}>
+            {urgentReminders.map(reminder => {
+              const days = getDaysUntil(reminder.nextDate);
+              return (
+                <View key={reminder.id} className={styles.reminderCard}>
+                  <View className={classnames(styles.reminderIcon, reminder.type)}>
+                    <Text>{getReminderIcon(reminder.type)}</Text>
+                  </View>
+                  <View className={styles.reminderInfo}>
+                    <Text className={styles.reminderName}>{reminder.collectionName}</Text>
+                    <Text className={styles.reminderType}>{getMaintenanceTypeText(reminder.type)}</Text>
+                    <Text className={styles.reminderDate}>
+                      {days > 0 
+                        ? `还有 ${days} 天（${reminder.nextDate}）` 
+                        : days === 0 
+                          ? '今日到期' 
+                          : `已逾期 ${Math.abs(days)} 天`
+                      }
+                    </Text>
+                  </View>
+                  <Button
+                    className={styles.reminderAction}
+                    onClick={() => handleCompleteReminder(reminder.id)}
+                  >
+                    <Text>完成</Text>
+                  </Button>
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <Text className={styles.noReminders}>暂无待办保养任务</Text>
+        )}
+      </View>
+
+      <View className={styles.tabBar}>
+        <Button
+          className={classnames(styles.tabBtn, activeTab === 'history' && styles.active)}
+          onClick={() => setActiveTab('history')}
+        >
+          <Text>维护历史</Text>
+        </Button>
+        <Button
+          className={classnames(styles.tabBtn, activeTab === 'flaws' && styles.active)}
+          onClick={() => setActiveTab('flaws')}
+        >
+          <Text>瑕疵记录</Text>
+        </Button>
+        <Button
+          className={classnames(styles.tabBtn, activeTab === 'parts' && styles.active)}
+          onClick={() => setActiveTab('parts')}
+        >
+          <Text>补件记录</Text>
+        </Button>
+      </View>
+
+      <ScrollView className={styles.listSection} scrollY enhanced>
+        {activeTab === 'history' && (
+          <>
+            <Text className={styles.sectionTitle}>维护历史</Text>
+            {maintenanceHistory.length > 0 ? (
+              <View className={styles.list}>
+                {maintenanceHistory.map(record => (
+                  <View key={record.id} className={styles.recordCard}>
+                    <View className={styles.recordHeader}>
+                      <Text className={styles.recordName}>{record.collectionName}</Text>
+                      <Text className={styles.recordDate}>{record.date}</Text>
+                    </View>
+                    <View className={classnames(styles.recordType, record.type)}>
+                      <Text>{getMaintenanceTypeText(record.type)}</Text>
+                    </View>
+                    <Text className={styles.recordDesc}>{record.description}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View className={styles.emptyState}>
+                <Text className={styles.emptyIcon}>📋</Text>
+                <Text className={styles.emptyText}>暂无维护记录</Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {activeTab === 'flaws' && (
+          <>
+            <Text className={styles.sectionTitle}>瑕疵记录</Text>
+            {flawRecords.length > 0 ? (
+              <View className={styles.list}>
+                {flawRecords.map(record => (
+                  <View key={record.id} className={styles.recordCard}>
+                    <View className={styles.recordHeader}>
+                      <Text className={styles.recordName}>{record.collectionName}</Text>
+                      <Text className={styles.recordDate}>{record.date}</Text>
+                    </View>
+                    <View className={classnames(styles.statusBadge, record.status)}>
+                      <Text>{getFlawStatusText(record.status)}</Text>
+                    </View>
+                    <Text className={styles.recordDesc}>{record.description}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View className={styles.emptyState}>
+                <Text className={styles.emptyIcon}>✨</Text>
+                <Text className={styles.emptyText}>暂无瑕疵记录</Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {activeTab === 'parts' && (
+          <>
+            <Text className={styles.sectionTitle}>补件记录</Text>
+            {partRecords.length > 0 ? (
+              <View className={styles.list}>
+                {partRecords.map(record => (
+                  <View key={record.id} className={styles.recordCard}>
+                    <View className={styles.recordHeader}>
+                      <Text className={styles.recordName}>{record.collectionName}</Text>
+                      <Text className={styles.recordDate}>
+                        申请：{record.applyDate}
+                        {record.receivedDate && ` / 收到：${record.receivedDate}`}
+                      </Text>
+                    </View>
+                    <View className={classnames(styles.statusBadge, record.status)}>
+                      <Text>{getPartStatusText(record.status)}</Text>
+                    </View>
+                    <Text className={styles.recordDesc}>{record.description}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View className={styles.emptyState}>
+                <Text className={styles.emptyIcon}>📦</Text>
+                <Text className={styles.emptyText}>暂无补件记录</Text>
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
+    </View>
+  );
+};
+
+export default MaintenancePage;

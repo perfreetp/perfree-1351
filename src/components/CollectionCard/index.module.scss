@@ -1,0 +1,129 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  &.listMode {
+    display: flex;
+    height: 240rpx;
+  }
+}
+
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 100%;
+
+  .listMode & {
+    width: 240rpx;
+    padding-top: 0;
+    flex-shrink: 0;
+  }
+}
+
+.image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  .listMode & {
+    position: relative;
+    width: 240rpx;
+    height: 240rpx;
+  }
+}
+
+.statusBadge {
+  position: absolute;
+  top: $spacing-sm;
+  left: $spacing-sm;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+
+  &.pending {
+    background-color: rgba(245, 158, 11, 0.9);
+    color: $color-text-white;
+  }
+
+  &.sealed {
+    background-color: rgba(59, 130, 246, 0.9);
+    color: $color-text-white;
+  }
+
+  &.flaw {
+    background-color: rgba(239, 68, 68, 0.9);
+    color: $color-text-white;
+  }
+}
+
+.info {
+  padding: $spacing-md;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.characterName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.seriesName {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  @include text-ellipsis;
+  margin-top: $spacing-xs;
+}
+
+.meta {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+}
+
+.scale {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  background-color: $color-bg-tag;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+}
+
+.manufacturer {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  @include text-ellipsis;
+  flex: 1;
+}
+
+.price {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-price;
+  margin-top: $spacing-sm;
+}
+
+.location {
+  margin-top: $spacing-sm;
+}
+
+.locationText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}

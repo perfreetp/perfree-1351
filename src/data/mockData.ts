@@ -12,8 +12,11 @@ export const mockCollections: CollectionItem[] = [
     photos: ['https://picsum.photos/id/1027/300/300'],
     displayLocation: '展柜A-3层',
     isUnboxed: true,
+    unboxedDate: '2024-02-20',
     hasArrived: true,
     arrivalDate: '2024-02-20',
+    coverPhotoIndex: 0,
+    collectionStatus: 'in_cabinet',
     flaws: [],
     replacementParts: [],
     maintenanceRecords: [

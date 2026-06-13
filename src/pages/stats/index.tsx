@@ -7,28 +7,48 @@ import { useCollection } from '../../store/CollectionContext';
 import StatCard from '../../components/StatCard';
 import { formatPrice } from '../../utils';
 
+type TabKey = 'series' | 'manufacturer' | 'year' | 'trend' | 'valuation';
+
 const StatsPage: React.FC = () => {
-  const { allCollections, getSeriesList } = useCollection();
-  const [activeTab, setActiveTab] = useState<'series' | 'manufacturer' | 'year' | 'trend'>('series');
+  const { allCollections, getSeriesList, getActiveCollections } = useCollection();
+  const [activeTab, setActiveTab] = useState<TabKey>('series');
   const [filterSeries, setFilterSeries] = useState<number>(0);
 
   const seriesList = useMemo(() => getSeriesList(), [getSeriesList]);
   const seriesOptions = useMemo(() => ['全部', ...seriesList], [seriesList]);
 
-  const statsCollections = useMemo(() => {
+  const activeCollections = useMemo(() => getActiveCollections(), [getActiveCollections]);
+  const soldCollections = useMemo(
+    () => allCollections.filter(item => item.collectionStatus === 'sold'),
+    [allCollections]
+  );
+
+  const filteredActive = useMemo(() => {
     const seriesName = seriesOptions[filterSeries];
-    if (seriesName === '全部') return allCollections;
-    return allCollections.filter(item => item.seriesName === seriesName);
-  }, [allCollections, filterSeries, seriesOptions]);
+    if (seriesName === '全部') return activeCollections;
+    return activeCollections.filter(item => item.seriesName === seriesName);
+  }, [activeCollections, filterSeries, seriesOptions]);
+
+  const filteredSold = useMemo(() => {
+    const seriesName = seriesOptions[filterSeries];
+    if (seriesName === '全部') return soldCollections;
+    return soldCollections.filter(item => item.seriesName === seriesName);
+  }, [soldCollections, filterSeries, seriesOptions]);
+
+  const topStats = useMemo(() => {
+    const cabinetCount = filteredActive.length;
+    const totalSpent = filteredActive.reduce((sum, item) => sum + item.purchasePrice, 0);
+    const totalCurrentValue = filteredActive.reduce(
+      (sum, item) => sum + (item.currentValue ?? 0), 0
+    );
+    const profitLoss = totalCurrentValue - totalSpent;
+    return { cabinetCount, totalSpent, totalCurrentValue, profitLoss };
+  }, [filteredActive]);
 
   const stats = useMemo(() => {
-    const arrivedItems = statsCollections.filter(item => item.hasArrived);
-    const pendingItems = statsCollections.filter(item => !item.hasArrived);
-    const unboxedCount = arrivedItems.filter(item => item.isUnboxed).length;
-
     const bySeries: Array<{ name: string; count: number; spent: number }> = [];
     const seriesMap = new Map<string, { count: number; spent: number }>();
-    statsCollections.forEach(item => {
+    filteredActive.forEach(item => {
       if (!seriesMap.has(item.seriesName)) {
         seriesMap.set(item.seriesName, { count: 0, spent: 0 });
       }
@@ -43,7 +63,7 @@ const StatsPage: React.FC = () => {
 
     const byManufacturer: Array<{ name: string; count: number; spent: number }> = [];
     const manuMap = new Map<string, { count: number; spent: number }>();
-    statsCollections.forEach(item => {
+    filteredActive.forEach(item => {
       if (!manuMap.has(item.manufacturer)) {
         manuMap.set(item.manufacturer, { count: 0, spent: 0 });
       }
@@ -58,7 +78,7 @@ const StatsPage: React.FC = () => {
 
     const byYear: Array<{ year: string; count: number; spent: number }> = [];
     const yearMap = new Map<string, { count: number; spent: number }>();
-    statsCollections.forEach(item => {
+    filteredActive.forEach(item => {
       const year = item.purchaseDate.substring(0, 4);
       if (!yearMap.has(year)) {
         yearMap.set(year, { count: 0, spent: 0 });
@@ -74,7 +94,7 @@ const StatsPage: React.FC = () => {
 
     const monthlyTrend: Array<{ month: string; count: number; spent: number }> = [];
     const monthMap = new Map<string, { count: number; spent: number }>();
-    statsCollections.forEach(item => {
+    filteredActive.forEach(item => {
       const month = item.purchaseDate.substring(0, 7);
       if (!monthMap.has(month)) {
         monthMap.set(month, { count: 0, spent: 0 });
@@ -88,22 +108,52 @@ const StatsPage: React.FC = () => {
     });
     monthlyTrend.sort((a, b) => a.month.localeCompare(b.month));
 
-    const totalSpent = statsCollections.reduce((sum, item) => sum + item.purchasePrice, 0);
     const maxSpent = bySeries.length > 0 ? Math.max(...bySeries.map(s => s.spent)) : 1;
 
-    return {
-      totalCount: statsCollections.length,
-      totalSpent,
-      arrivedCount: arrivedItems.length,
-      pendingCount: pendingItems.length,
-      unboxedCount,
-      bySeries,
-      byManufacturer,
-      byYear,
-      monthlyTrend,
-      maxSpent
-    };
-  }, [statsCollections]);
+    return { bySeries, byManufacturer, byYear, monthlyTrend, maxSpent };
+  }, [filteredActive]);
+
+  const valuationData = useMemo(() => {
+    const items = filteredActive
+      .map(item => {
+        const purchasePrice = item.purchasePrice;
+        const currentValue = item.currentValue ?? 0;
+        const profitLoss = currentValue - purchasePrice;
+        const profitPercent = purchasePrice > 0 ? (profitLoss / purchasePrice) * 100 : 0;
+        return {
+          id: item.id,
+          characterName: item.characterName,
+          seriesName: item.seriesName,
+          purchasePrice,
+          currentValue,
+          profitLoss,
+          profitPercent,
+        };
+      })
+      .sort((a, b) => b.profitLoss - a.profitLoss);
+
+    return items;
+  }, [filteredActive]);
+
+  const soldData = useMemo(() => {
+    return filteredSold
+      .map(item => {
+        const purchasePrice = item.purchasePrice;
+        const salePrice = item.salePrice ?? 0;
+        const profitLoss = salePrice - purchasePrice;
+        const profitPercent = purchasePrice > 0 ? (profitLoss / purchasePrice) * 100 : 0;
+        return {
+          id: item.id,
+          characterName: item.characterName,
+          seriesName: item.seriesName,
+          purchasePrice,
+          salePrice,
+          profitLoss,
+          profitPercent,
+        };
+      })
+      .sort((a, b) => b.profitLoss - a.profitLoss);
+  }, [filteredSold]);
 
   const renderStatList = (
     data: Array<{ name: string; count: number; spent: number }>,
@@ -137,7 +187,9 @@ const StatsPage: React.FC = () => {
             <View className={styles.statValue}>
               <Text className={styles.statPrice}>{formatPrice(item.spent)}</Text>
               <Text className={styles.statPercent}>
-                {((item.spent / stats.totalSpent) * 100).toFixed(1)}%
+                {topStats.totalSpent > 0
+                  ? ((item.spent / topStats.totalSpent) * 100).toFixed(1)
+                  : 0}%
               </Text>
             </View>
           </View>
@@ -169,7 +221,9 @@ const StatsPage: React.FC = () => {
             <View className={styles.statValue}>
               <Text className={styles.statPrice}>{formatPrice(item.spent)}</Text>
               <Text className={styles.statPercent}>
-                {((item.spent / stats.totalSpent) * 100).toFixed(1)}%
+                {topStats.totalSpent > 0
+                  ? ((item.spent / topStats.totalSpent) * 100).toFixed(1)
+                  : 0}%
               </Text>
             </View>
           </View>
@@ -213,6 +267,106 @@ const StatsPage: React.FC = () => {
     );
   };
 
+  const renderValuation = () => {
+    if (valuationData.length === 0 && soldData.length === 0) {
+      return (
+        <View className={styles.emptyState}>
+          <Text className={styles.emptyIcon}>💹</Text>
+          <Text className={styles.emptyText}>暂无估值数据</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View className={styles.valuationSection}>
+        {valuationData.length > 0 && (
+          <View className={styles.valuationList}>
+            {valuationData.map((item) => (
+              <View key={item.id} className={styles.valuationItem}>
+                <View className={styles.valuationInfo}>
+                  <Text className={styles.valuationName}>{item.characterName}</Text>
+                  <Text className={styles.valuationSeries}>{item.seriesName}</Text>
+                </View>
+                <View className={styles.valuationPrices}>
+                  <View className={styles.valuationPriceRow}>
+                    <Text className={styles.valuationLabel}>入手价</Text>
+                    <Text className={styles.valuationPriceValue}>
+                      {formatPrice(item.purchasePrice)}
+                    </Text>
+                  </View>
+                  <View className={styles.valuationPriceRow}>
+                    <Text className={styles.valuationLabel}>当前估值</Text>
+                    <Text className={styles.valuationPriceValue}>
+                      {item.currentValue > 0 ? formatPrice(item.currentValue) : '未估'}
+                    </Text>
+                  </View>
+                  <View className={styles.valuationPriceRow}>
+                    <Text className={styles.valuationLabel}>盈亏</Text>
+                    <Text
+                      className={classnames(
+                        styles.valuationProfitValue,
+                        item.profitLoss > 0 && styles.profitGain,
+                        item.profitLoss < 0 && styles.profitLoss,
+                      )}
+                    >
+                      {item.currentValue > 0
+                        ? `${item.profitLoss > 0 ? '+' : ''}${formatPrice(item.profitLoss)} (${item.profitPercent > 0 ? '+' : ''}${item.profitPercent.toFixed(1)}%)`
+                        : '--'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {soldData.length > 0 && (
+          <>
+            <Text className={styles.soldSectionTitle}>已出记录</Text>
+            <View className={styles.valuationList}>
+              {soldData.map((item) => (
+                <View key={item.id} className={classnames(styles.valuationItem, styles.soldItem)}>
+                  <View className={styles.valuationInfo}>
+                    <Text className={styles.valuationName}>{item.characterName}</Text>
+                    <Text className={styles.valuationSeries}>{item.seriesName}</Text>
+                  </View>
+                  <View className={styles.valuationPrices}>
+                    <View className={styles.valuationPriceRow}>
+                      <Text className={styles.valuationLabel}>入手价</Text>
+                      <Text className={styles.valuationPriceValue}>
+                        {formatPrice(item.purchasePrice)}
+                      </Text>
+                    </View>
+                    <View className={styles.valuationPriceRow}>
+                      <Text className={styles.valuationLabel}>出手价</Text>
+                      <Text className={styles.valuationPriceValue}>
+                        {item.salePrice > 0 ? formatPrice(item.salePrice) : '未记录'}
+                      </Text>
+                    </View>
+                    <View className={styles.valuationPriceRow}>
+                      <Text className={styles.valuationLabel}>盈亏</Text>
+                      <Text
+                        className={classnames(
+                          styles.valuationProfitValue,
+                          item.profitLoss > 0 && styles.profitGain,
+                          item.profitLoss < 0 && styles.profitLoss,
+                        )}
+                      >
+                        {item.salePrice > 0
+                          ? `${item.profitLoss > 0 ? '+' : ''}${formatPrice(item.profitLoss)} (${item.profitPercent > 0 ? '+' : ''}${item.profitPercent.toFixed(1)}%)`
+                          : '--'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+      </View>
+    );
+  };
+
   usePullDownRefresh(() => {
     setTimeout(() => {
       Taro.stopPullDownRefresh();
@@ -232,27 +386,26 @@ const StatsPage: React.FC = () => {
 
       <View className={styles.statsGrid}>
         <StatCard
-          title="总藏品数"
-          value={stats.totalCount}
+          title="在柜数量"
+          value={topStats.cabinetCount}
           subtitle="件"
           color="primary"
         />
         <StatCard
           title="总花费"
-          value={formatPrice(stats.totalSpent)}
+          value={formatPrice(topStats.totalSpent)}
           color="success"
         />
         <StatCard
-          title="已拆封"
-          value={stats.unboxedCount}
-          subtitle={`${stats.arrivedCount > 0 ? ((stats.unboxedCount / stats.arrivedCount) * 100).toFixed(0) : 0}%`}
+          title="当前估值"
+          value={formatPrice(topStats.totalCurrentValue)}
           color="warning"
         />
         <StatCard
-          title="待到货"
-          value={stats.pendingCount}
-          subtitle="件"
-          color="error"
+          title="估值盈亏"
+          value={`${topStats.profitLoss > 0 ? '+' : ''}${formatPrice(topStats.profitLoss)}`}
+          subtitle={topStats.totalSpent > 0 ? `${((topStats.profitLoss / topStats.totalSpent) * 100).toFixed(1)}%` : undefined}
+          color={topStats.profitLoss >= 0 ? 'success' : 'error'}
         />
       </View>
 
@@ -281,6 +434,12 @@ const StatsPage: React.FC = () => {
         >
           <Text>趋势</Text>
         </Button>
+        <Button
+          className={classnames(styles.tabBtn, activeTab === 'valuation' && styles.active)}
+          onClick={() => setActiveTab('valuation')}
+        >
+          <Text>估值</Text>
+        </Button>
       </View>
 
       <ScrollView className={styles.listSection} scrollY enhanced>
@@ -306,6 +465,12 @@ const StatsPage: React.FC = () => {
           <>
             <Text className={styles.sectionTitle}>收藏趋势</Text>
             {renderTrendChart()}
+          </>
+        )}
+        {activeTab === 'valuation' && (
+          <>
+            <Text className={styles.sectionTitle}>估值分析</Text>
+            {renderValuation()}
           </>
         )}
       </ScrollView>

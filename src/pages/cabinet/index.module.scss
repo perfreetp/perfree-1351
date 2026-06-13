@@ -7,10 +7,12 @@
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: $spacing-sm;
   padding: $spacing-md $page-padding;
   background-color: $color-bg-card;
   border-bottom: 2rpx solid $color-border;
+  align-items: center;
 }
 
 .toolBtn {
@@ -35,9 +37,21 @@
     margin-left: auto;
   }
 
+  &.inventoryBtn {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: $color-success;
+  }
+
   &:active {
     opacity: 0.9;
   }
+}
+
+.lastInventoryDate {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-left: $spacing-xs;
 }
 
 .cabinetScroll {
@@ -127,6 +141,64 @@
   text-align: center;
 }
 
+.itemEditOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.65);
+  border-radius: $radius-md;
+  gap: 6rpx;
+  z-index: 2;
+}
+
+.moveActions {
+  display: flex;
+  gap: 4rpx;
+}
+
+.moveBtn {
+  @include button-reset;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
+  font-size: 18rpx;
+  color: $color-text-white;
+
+  &.moveCabinetBtn {
+    background-color: rgba(59, 130, 246, 0.7);
+  }
+
+  &.moveShelfBtn {
+    background-color: rgba(168, 85, 247, 0.7);
+  }
+
+  &.movePosBtn {
+    background-color: rgba(245, 158, 11, 0.7);
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.unboxBtn {
+  @include button-reset;
+  padding: 2rpx 12rpx;
+  background-color: rgba(16, 185, 129, 0.7);
+  border-radius: $radius-xs;
+  font-size: 18rpx;
+  color: $color-text-white;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
 .shelfItemEmpty {
   flex: 1;
   display: flex;
@@ -182,113 +254,6 @@
   color: $color-text-tertiary;
 }
 
-.editScroll {
-  height: calc(100vh - 100rpx);
-}
-
-.editList {
-  padding: $spacing-md $page-padding;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-md;
-}
-
-.editItem {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  background-color: $color-bg-card;
-  border-radius: $radius-lg;
-  padding: $spacing-md;
-  box-shadow: $shadow-card;
-  border: 2rpx solid $color-border;
-}
-
-.editOrder {
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: $radius-round;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.orderNum {
-  font-size: $font-size-sm;
-  color: $color-text-white;
-  font-weight: $font-weight-bold;
-}
-
-.editItemImageWrapper {
-  width: 100rpx;
-  height: 100rpx;
-  border-radius: $radius-md;
-  overflow: hidden;
-  flex-shrink: 0;
-  background-color: $color-bg-page;
-}
-
-.editItemImage {
-  width: 100%;
-  height: 100%;
-}
-
-.editItemInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-  min-width: 0;
-}
-
-.editItemName {
-  font-size: $font-size-md;
-  font-weight: $font-weight-semibold;
-  color: $color-text-primary;
-  @include text-ellipsis;
-}
-
-.editItemSeries {
-  font-size: $font-size-sm;
-  color: $color-text-secondary;
-  @include text-ellipsis;
-}
-
-.editItemMeta {
-  font-size: $font-size-xs;
-  color: $color-text-tertiary;
-  @include text-ellipsis;
-}
-
-.editControls {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-  flex-shrink: 0;
-}
-
-.controlBtn {
-  @include button-reset;
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: $radius-md;
-  background-color: $color-bg-page;
-  border: 2rpx solid $color-border;
-  font-size: $font-size-lg;
-  color: $color-text-primary;
-  transition: all $transition-base;
-
-  &.disabled {
-    opacity: 0.3;
-  }
-
-  &:active:not(.disabled) {
-    background-color: $color-bg-hover;
-  }
-}
-
 .cabinets {
   padding-bottom: $spacing-lg;
 }
@@ -339,6 +304,7 @@
   background-color: rgba(124, 58, 237, 0.8);
   border-radius: $radius-xs;
   padding: 2rpx 6rpx;
+  z-index: 3;
 
   Text {
     font-size: 18rpx;
@@ -458,5 +424,405 @@
 
   &:active {
     opacity: 0.9;
+  }
+}
+
+.pickerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.pickerCard {
+  width: 80%;
+  background-color: $color-bg-card;
+  border-radius: $radius-xl;
+  padding: $spacing-xl $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+  border: 2rpx solid $color-border;
+}
+
+.pickerTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  text-align: center;
+}
+
+.pickerTrigger {
+  width: 100%;
+  padding: $spacing-md;
+  background-color: $color-bg-page;
+  border: 2rpx solid rgba(124, 58, 237, 0.3);
+  border-radius: $radius-button;
+  text-align: center;
+}
+
+.pickerTriggerText {
+  font-size: $font-size-md;
+  color: #A78BFA;
+  font-weight: $font-weight-medium;
+}
+
+.pickerCancelBtn {
+  @include button-reset;
+  padding: $spacing-sm $spacing-xl;
+  background-color: $color-bg-page;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.inventoryToolbar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md $page-padding;
+  background-color: $color-bg-card;
+  border-bottom: 2rpx solid $color-border;
+}
+
+.inventoryBackBtn {
+  @include button-reset;
+  padding: $spacing-xs $spacing-md;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 2rpx solid rgba(239, 68, 68, 0.3);
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-error;
+}
+
+.inventoryToolbarTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-gold;
+}
+
+.inventorySelect {
+  padding: $spacing-xl $page-padding;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-lg;
+}
+
+.inventorySelectTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.inventoryCabinetList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  justify-content: center;
+}
+
+.inventoryCabinetBtn {
+  @include button-reset;
+  padding: $spacing-md $spacing-xl;
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  border: 4rpx solid rgba(124, 58, 237, 0.3);
+  border-radius: $radius-lg;
+  font-size: $font-size-md;
+  color: $color-gold;
+  font-weight: $font-weight-semibold;
+
+  &:active {
+    opacity: 0.8;
+    border-color: rgba(124, 58, 237, 0.6);
+  }
+}
+
+.inventoryEmpty {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.inventoryChecking {
+  padding: $spacing-md $page-padding;
+}
+
+.inventoryProgress {
+  padding: $spacing-md;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  border: 2rpx solid $color-border;
+  margin-bottom: $spacing-md;
+}
+
+.inventoryProgressText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.inventoryShelfItems {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.inventoryItem {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  border: 2rpx solid $color-border;
+}
+
+.inventoryItemLeft {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.inventoryItemImg {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-md;
+  flex-shrink: 0;
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+.inventoryItemInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+}
+
+.inventoryItemName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.inventoryItemExpected {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.inventoryStatusIcon {
+  font-size: $font-size-lg;
+  flex-shrink: 0;
+}
+
+.inventoryItemActions {
+  display: flex;
+  gap: $spacing-sm;
+  padding-left: 100rpx;
+}
+
+.inventoryStatusBtn {
+  @include button-reset;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-button;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  background-color: $color-bg-page;
+  border: 2rpx solid $color-border;
+
+  &.inventoryStatusBtnActive {
+    border-width: 4rpx;
+    font-weight: $font-weight-semibold;
+  }
+
+  &.statusInCabinet {
+    &.inventoryStatusBtnActive {
+      background-color: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.5);
+      color: $color-success;
+    }
+  }
+
+  &.statusLoaned {
+    &.inventoryStatusBtnActive {
+      background-color: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.5);
+      color: #3B82F6;
+    }
+  }
+
+  &.statusPending {
+    &.inventoryStatusBtnActive {
+      background-color: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.5);
+      color: $color-gold;
+    }
+  }
+}
+
+.inventoryNav {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-lg 0;
+  justify-content: center;
+}
+
+.inventoryNavBtn {
+  @include button-reset;
+  padding: $spacing-sm $spacing-xl;
+  background-color: $color-bg-page;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+
+  &.disabled {
+    opacity: 0.3;
+  }
+
+  &:active:not(.disabled) {
+    opacity: 0.8;
+  }
+}
+
+.inventoryCompleteBtn {
+  @include button-reset;
+  padding: $spacing-sm $spacing-xl;
+  background: linear-gradient(135deg, $color-success 0%, rgba(16, 185, 129, 0.8) 100%);
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.inventorySummary {
+  padding: $spacing-lg $page-padding;
+}
+
+.inventorySummaryHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-lg;
+}
+
+.inventorySummaryTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-gold;
+}
+
+.inventorySummaryDate {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.discrepancyList {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  border: 2rpx solid rgba(239, 68, 68, 0.3);
+  margin-bottom: $spacing-lg;
+}
+
+.discrepancyTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-error;
+  margin-bottom: $spacing-md;
+}
+
+.discrepancyItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  padding: $spacing-sm 0;
+  border-bottom: 2rpx solid $color-border;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.discrepancyName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.discrepancyDetail {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.discrepancyExpected {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.discrepancyArrow {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.discrepancyActual {
+  font-size: $font-size-xs;
+  color: $color-error;
+  font-weight: $font-weight-medium;
+}
+
+.discrepancyNotes {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  font-style: italic;
+}
+
+.noDiscrepancy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-xl 0;
+}
+
+.noDiscrepancyIcon {
+  font-size: 80rpx;
+}
+
+.noDiscrepancyText {
+  font-size: $font-size-md;
+  color: $color-success;
+  font-weight: $font-weight-medium;
+}
+
+.inventoryExitBtn {
+  @include button-reset;
+  width: 100%;
+  padding: $spacing-md;
+  background-color: $color-bg-card;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+
+  &:active {
+    opacity: 0.8;
   }
 }

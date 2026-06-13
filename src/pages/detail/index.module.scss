@@ -114,6 +114,26 @@
     background-color: rgba(239, 68, 68, 0.2);
     color: $color-error;
   }
+
+  &.in_cabinet {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: $color-info;
+  }
+
+  &.loaned {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: $color-warning;
+  }
+
+  &.sold {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: $color-error;
+  }
+
+  &.pending_confirm {
+    background-color: rgba(148, 163, 184, 0.2);
+    color: $color-text-tertiary;
+  }
 }
 
 .seriesName {
@@ -295,6 +315,16 @@
     background-color: #64748B;
     box-shadow: 0 0 8rpx rgba(100, 116, 139, 0.4);
   }
+
+  &.sold {
+    background-color: $color-error;
+    box-shadow: 0 0 8rpx rgba(239, 68, 68, 0.4);
+  }
+
+  &.inventory {
+    background-color: #06B6D4;
+    box-shadow: 0 0 8rpx rgba(6, 182, 212, 0.4);
+  }
 }
 
 .timelineLine {
@@ -372,6 +402,16 @@
   &.purchase {
     background-color: rgba(100, 116, 139, 0.15);
     color: $color-text-tertiary;
+  }
+
+  &.sold {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: $color-error;
+  }
+
+  &.inventory {
+    background-color: rgba(6, 182, 212, 0.15);
+    color: #06B6D4;
   }
 }
 
@@ -720,6 +760,88 @@
 
   &:active {
     transform: scale(0.98);
+    opacity: 0.9;
+  }
+}
+
+.coverStar {
+  position: absolute;
+  top: $spacing-md;
+  left: $spacing-md;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-md;
+  z-index: 10;
+}
+
+.setCoverBtn {
+  position: absolute;
+  bottom: $spacing-md;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: $spacing-xs $spacing-lg;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: $radius-button;
+  font-size: $font-size-xs;
+  color: $color-text-white;
+  backdrop-filter: blur(8px);
+  z-index: 10;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.statusSelector {
+  margin-top: $spacing-lg;
+  padding-top: $spacing-lg;
+  border-top: 2rpx solid $color-border;
+}
+
+.statusSelectorLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-sm;
+  font-weight: $font-weight-medium;
+}
+
+.statusSelectorOptions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.statusOptionBtn {
+  @include button-reset;
+  flex: 1;
+  padding: $spacing-sm $spacing-xs;
+  background-color: $color-bg-page;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+
+  &.statusOptionActive {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+    color: $color-text-white;
+    border-color: $color-primary;
+  }
+
+  &.statusOptionSold {
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  &.statusOptionSold.statusOptionActive {
+    background: linear-gradient(135deg, $color-error 0%, darken($color-error, 10%) 100%);
+    border-color: $color-error;
+  }
+
+  &:active {
     opacity: 0.9;
   }
 }

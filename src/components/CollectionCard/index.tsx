@@ -8,11 +8,12 @@ import { formatPrice } from '../../utils';
 
 interface CollectionCardProps {
   item: CollectionItem;
+  coverPhoto?: string;
   onClick?: () => void;
   mode?: 'grid' | 'list';
 }
 
-const CollectionCard: React.FC<CollectionCardProps> = ({ item, onClick, mode = 'grid' }) => {
+const CollectionCard: React.FC<CollectionCardProps> = ({ item, coverPhoto, onClick, mode = 'grid' }) => {
   const handleClick = () => {
     if (onClick) {
       onClick();
@@ -28,7 +29,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({ item, onClick, mode = '
     >
       <View className={styles.imageWrapper}>
         <Image 
-          src={item.photos[0]} 
+          src={coverPhoto || item.photos[0]}
           mode="aspectFill" 
           className={styles.image}
           onError={(e) => console.error('[Image] Failed to load:', e)}

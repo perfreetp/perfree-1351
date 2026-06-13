@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import Taro from '@tarojs/taro';
-import { CollectionItem, MaintenanceReminder, FlawRecord, ReplacementPart, MaintenanceRecord, CabinetPosition, TimelineEvent } from '../types/collection';
+import { CollectionItem, MaintenanceReminder, FlawRecord, ReplacementPart, MaintenanceRecord, CabinetPosition, TimelineEvent, MaintenanceTemplate, InventoryRecord, InventoryCheckItem } from '../types/collection';
 import { mockCollections, mockReminders } from '../data/mockData';
+import { formatPrice } from '../utils';
 
 const STORAGE_KEY_COLLECTIONS = 'figure_collections';
 const STORAGE_KEY_REMINDERS = 'figure_reminders';
 const STORAGE_KEY_CABINET_LAYOUT = 'figure_cabinet_layout';
+const STORAGE_KEY_TEMPLATES = 'figure_maintenance_templates';
+const STORAGE_KEY_INVENTORIES = 'figure_inventories';
 
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
@@ -35,9 +38,7 @@ async function persistPhoto(tempPath: string): Promise<string> {
     return tempPath;
   }
   try {
-    const res = await Taro.saveFile({
-      tempFilePath: tempPath
-    });
+    const res = await Taro.saveFile({ tempFilePath: tempPath });
     return res.savedFilePath;
   } catch (e) {
     console.error('[Photo] Failed to persist:', tempPath, e);
@@ -55,6 +56,8 @@ interface CollectionContextType {
   allCollections: CollectionItem[];
   collections: CollectionItem[];
   reminders: MaintenanceReminder[];
+  maintenanceTemplates: MaintenanceTemplate[];
+  inventoryRecords: InventoryRecord[];
   showcaseSeries: string | null;
   setShowcaseSeries: (series: string | null) => void;
   getCollectionById: (id: string) => CollectionItem | undefined;
@@ -77,13 +80,40 @@ interface CollectionContextType {
   markBalancePaid: (id: string) => void;
   addPhotos: (collectionId: string, tempPaths: string[]) => Promise<void>;
   removePhoto: (collectionId: string, photoIndex: number) => void;
+  setCoverPhoto: (collectionId: string, photoIndex: number) => void;
+  getCoverPhoto: (item: CollectionItem) => string;
   getTimeline: (collectionId?: string) => TimelineEvent[];
+  markUnboxed: (id: string) => void;
+  addMaintenanceTemplate: (template: Omit<MaintenanceTemplate, 'id'>) => void;
+  updateMaintenanceTemplate: (id: string, updates: Partial<MaintenanceTemplate>) => void;
+  deleteMaintenanceTemplate: (id: string) => void;
+  applyTemplateToCollection: (collectionId: string, templateId: string) => void;
+  startInventory: (cabinet: string) => InventoryRecord;
+  updateInventoryItem: (inventoryId: string, itemId: string, actualStatus: CollectionItem['collectionStatus'], notes?: string) => void;
+  completeInventory: (inventoryId: string) => void;
+  getLatestInventoryDate: () => string | null;
+  getInventoryDiscrepancies: (inventoryId: string) => InventoryCheckItem[];
+  getActiveCollections: () => CollectionItem[];
 }
 
 const CollectionContext = createContext<CollectionContextType | undefined>(undefined);
 
+function migrateItem(item: any): CollectionItem {
+  return {
+    ...item,
+    coverPhotoIndex: item.coverPhotoIndex ?? 0,
+    collectionStatus: item.collectionStatus ?? 'in_cabinet',
+    currentValue: item.currentValue,
+    salePrice: item.salePrice,
+    unboxedDate: item.unboxedDate,
+    material: item.material,
+    inventoryStatus: item.inventoryStatus,
+    lastInventoryDate: item.lastInventoryDate,
+  };
+}
+
 export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [allCollections, setAllCollections] = useState<CollectionItem[]>(() =>
+  const [rawCollections, setRawCollections] = useState<any[]>(() =>
     loadFromStorage(STORAGE_KEY_COLLECTIONS, mockCollections)
   );
   const [reminders, setReminders] = useState<MaintenanceReminder[]>(() =>
@@ -94,14 +124,30 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [cabinetLayout, setCabinetLayoutState] = useState<CabinetLayout>(() =>
     loadFromStorage(STORAGE_KEY_CABINET_LAYOUT, {})
   );
+  const [maintenanceTemplates, setMaintenanceTemplates] = useState<MaintenanceTemplate[]>(() =>
+    loadFromStorage(STORAGE_KEY_TEMPLATES, [])
+  );
+  const [inventoryRecords, setInventoryRecords] = useState<InventoryRecord[]>(() =>
+    loadFromStorage(STORAGE_KEY_INVENTORIES, [])
+  );
+
+  const allCollections = useMemo(() => rawCollections.map(migrateItem), [rawCollections]);
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEY_COLLECTIONS, allCollections);
-  }, [allCollections]);
+    saveToStorage(STORAGE_KEY_COLLECTIONS, rawCollections);
+  }, [rawCollections]);
 
   useEffect(() => {
     saveToStorage(STORAGE_KEY_REMINDERS, reminders);
   }, [reminders]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEY_TEMPLATES, maintenanceTemplates);
+  }, [maintenanceTemplates]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEY_INVENTORIES, inventoryRecords);
+  }, [inventoryRecords]);
 
   const setCabinetLayout = useCallback((layout: CabinetLayout) => {
     setCabinetLayoutState(layout);
@@ -116,39 +162,49 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return allCollections.filter(item => item.seriesName === series);
   }, [allCollections]);
 
+  const getActiveCollections = useCallback(() => {
+    return allCollections.filter(item => item.collectionStatus !== 'sold');
+  }, [allCollections]);
+
   const addCollection = useCallback((item: Omit<CollectionItem, 'id' | 'createdAt' | 'sortOrder'>) => {
     const newItem: CollectionItem = {
       ...item,
       id: Date.now().toString(),
       createdAt: new Date().toISOString().split('T')[0],
-      sortOrder: allCollections.length + 1
+      sortOrder: rawCollections.length + 1
     };
-    setAllCollections(prev => [...prev, newItem]);
+    setRawCollections(prev => [...prev, newItem]);
 
     if (newItem.hasArrived && newItem.isUnboxed) {
+      const template = maintenanceTemplates.find(t =>
+        t.material === newItem.material || t.seriesName === newItem.seriesName
+      );
+      const dustDays = template?.dustIntervalDays || 30;
       const newReminder: MaintenanceReminder = {
         id: `rem_${Date.now()}`,
         collectionId: newItem.id,
         collectionName: newItem.characterName,
         type: 'dust',
-        nextDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        intervalDays: 30
+        nextDate: new Date(Date.now() + dustDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        intervalDays: dustDays,
+        material: newItem.material,
+        seriesName: newItem.seriesName
       };
       setReminders(prev => [...prev, newReminder]);
     }
 
     console.log('[Collection] Added new collection:', newItem);
-  }, [allCollections.length]);
+  }, [rawCollections.length, maintenanceTemplates]);
 
   const updateCollection = useCallback((id: string, updates: Partial<CollectionItem>) => {
-    setAllCollections(prev => prev.map(item =>
+    setRawCollections(prev => prev.map(item =>
       item.id === id ? { ...item, ...updates } : item
     ));
     console.log('[Collection] Updated collection:', id, updates);
   }, []);
 
   const deleteCollection = useCallback((id: string) => {
-    setAllCollections(prev => prev.filter(item => item.id !== id));
+    setRawCollections(prev => prev.filter(item => item.id !== id));
     setReminders(prev => prev.filter(r => r.collectionId !== id));
     setCabinetLayoutState(prev => {
       const next = { ...prev };
@@ -181,7 +237,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         date: new Date().toISOString().split('T')[0],
         description: completedReminder.type === 'dust' ? '定期除尘保养' : '检查避光措施'
       };
-      setAllCollections(prev => prev.map(item => {
+      setRawCollections(prev => prev.map(item => {
         if (item.id === completedReminder!.collectionId) {
           return { ...item, maintenanceRecords: [...item.maintenanceRecords, record] };
         }
@@ -196,21 +252,34 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ...record,
       id: `mr_${Date.now()}`
     };
-    setAllCollections(prev => prev.map(item => {
+    setRawCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         return { ...item, maintenanceRecords: [...item.maintenanceRecords, newRecord] };
       }
       return item;
     }));
+
+    const matchingReminder = reminders.find(r => r.collectionId === collectionId && r.type === record.type);
+    if (matchingReminder) {
+      setReminders(prev => prev.map(r => {
+        if (r.id === matchingReminder.id) {
+          const nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + r.intervalDays);
+          return { ...r, nextDate: nextDate.toISOString().split('T')[0] };
+        }
+        return r;
+      }));
+    }
+
     console.log('[Collection] Added maintenance record:', collectionId, newRecord);
-  }, []);
+  }, [reminders]);
 
   const addFlawRecord = useCallback((collectionId: string, record: Omit<FlawRecord, 'id'>) => {
     const newRecord: FlawRecord = {
       ...record,
       id: `flaw_${Date.now()}`
     };
-    setAllCollections(prev => prev.map(item => {
+    setRawCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         return { ...item, flaws: [...item.flaws, newRecord] };
       }
@@ -224,7 +293,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ...record,
       id: `part_${Date.now()}`
     };
-    setAllCollections(prev => prev.map(item => {
+    setRawCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         return { ...item, replacementParts: [...item.replacementParts, newRecord] };
       }
@@ -234,7 +303,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const updateFlawStatus = useCallback((collectionId: string, flawId: string, status: 'pending' | 'resolved') => {
-    setAllCollections(prev => prev.map(item => {
+    setRawCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         return {
           ...item,
@@ -246,7 +315,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const updatePartStatus = useCallback((collectionId: string, partId: string, status: 'pending' | 'received') => {
-    setAllCollections(prev => prev.map(item => {
+    setRawCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         return {
           ...item,
@@ -260,7 +329,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const markArrived = useCallback((id: string) => {
-    setAllCollections(prev => prev.map(item => {
+    setRawCollections(prev => prev.map(item => {
       if (item.id === id) {
         return {
           ...item,
@@ -276,7 +345,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const markBalancePaid = useCallback((id: string) => {
-    setAllCollections(prev => prev.map(item => {
+    setRawCollections(prev => prev.map(item => {
       if (item.id === id) {
         return { ...item, balanceDueDate: undefined };
       }
@@ -285,13 +354,24 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     console.log('[Collection] Marked balance paid:', id);
   }, []);
 
+  const markUnboxed = useCallback((id: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    setRawCollections(prev => prev.map(item => {
+      if (item.id === id) {
+        return { ...item, isUnboxed: true, unboxedDate: today };
+      }
+      return item;
+    }));
+    console.log('[Collection] Marked unboxed:', id, today);
+  }, []);
+
   const addPhotos = useCallback(async (collectionId: string, tempPaths: string[]) => {
     const savedPaths: string[] = [];
     for (const path of tempPaths) {
       const saved = await persistPhoto(path);
       savedPaths.push(saved);
     }
-    setAllCollections(prev => prev.map(item => {
+    setRawCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         const newPhotos = [...item.photos, ...savedPaths].slice(0, 9);
         return { ...item, photos: newPhotos };
@@ -302,14 +382,31 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const removePhoto = useCallback((collectionId: string, photoIndex: number) => {
-    setAllCollections(prev => prev.map(item => {
+    setRawCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         const newPhotos = item.photos.filter((_, i) => i !== photoIndex);
-        return { ...item, photos: newPhotos };
+        const newCoverIndex = Math.min(item.coverPhotoIndex, Math.max(0, newPhotos.length - 1));
+        return { ...item, photos: newPhotos, coverPhotoIndex: newCoverIndex };
       }
       return item;
     }));
     console.log('[Collection] Removed photo:', collectionId, photoIndex);
+  }, []);
+
+  const setCoverPhoto = useCallback((collectionId: string, photoIndex: number) => {
+    setRawCollections(prev => prev.map(item => {
+      if (item.id === collectionId) {
+        return { ...item, coverPhotoIndex: photoIndex };
+      }
+      return item;
+    }));
+    console.log('[Collection] Set cover photo:', collectionId, photoIndex);
+  }, []);
+
+  const getCoverPhoto = useCallback((item: CollectionItem): string => {
+    if (item.photos.length === 0) return '';
+    const idx = Math.min(item.coverPhotoIndex, item.photos.length - 1);
+    return item.photos[idx] || item.photos[0];
   }, []);
 
   const getSeriesList = useCallback(() => {
@@ -345,14 +442,25 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         });
       }
 
-      if (item.isUnboxed && item.arrivalDate) {
+      if (item.isUnboxed && item.unboxedDate) {
         events.push({
           id: `unbox_${item.id}`,
           collectionId: item.id,
           collectionName: item.characterName,
-          date: item.arrivalDate,
+          date: item.unboxedDate,
           type: 'unbox',
           description: '拆封展示'
+        });
+      }
+
+      if (item.collectionStatus === 'sold' && item.salePrice) {
+        events.push({
+          id: `sold_${item.id}`,
+          collectionId: item.id,
+          collectionName: item.characterName,
+          date: item.purchaseDate,
+          type: 'sold',
+          description: `已出手 ${formatPrice(item.salePrice)}`
         });
       }
 
@@ -395,8 +503,162 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [allCollections]);
 
+  const addMaintenanceTemplate = useCallback((template: Omit<MaintenanceTemplate, 'id'>) => {
+    const newTemplate: MaintenanceTemplate = {
+      ...template,
+      id: `tpl_${Date.now()}`
+    };
+    setMaintenanceTemplates(prev => [...prev, newTemplate]);
+    console.log('[Template] Added maintenance template:', newTemplate);
+  }, []);
+
+  const updateMaintenanceTemplate = useCallback((id: string, updates: Partial<MaintenanceTemplate>) => {
+    setMaintenanceTemplates(prev => prev.map(t =>
+      t.id === id ? { ...t, ...updates } : t
+    ));
+  }, []);
+
+  const deleteMaintenanceTemplate = useCallback((id: string) => {
+    setMaintenanceTemplates(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const applyTemplateToCollection = useCallback((collectionId: string, templateId: string) => {
+    const template = maintenanceTemplates.find(t => t.id === templateId);
+    if (!template) return;
+
+    const collection = allCollections.find(item => item.id === collectionId);
+    if (!collection) return;
+
+    const existingDust = reminders.find(r => r.collectionId === collectionId && r.type === 'dust');
+    if (existingDust) {
+      setReminders(prev => prev.map(r => {
+        if (r.id === existingDust.id) {
+          return { ...r, intervalDays: template.dustIntervalDays };
+        }
+        return r;
+      }));
+    } else {
+      setReminders(prev => [...prev, {
+        id: `rem_${Date.now()}`,
+        collectionId,
+        collectionName: collection.characterName,
+        type: 'dust',
+        nextDate: new Date(Date.now() + template.dustIntervalDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        intervalDays: template.dustIntervalDays,
+        material: collection.material,
+        seriesName: collection.seriesName
+      }]);
+    }
+
+    const existingLight = reminders.find(r => r.collectionId === collectionId && r.type === 'light_protection');
+    if (existingLight) {
+      setReminders(prev => prev.map(r => {
+        if (r.id === existingLight.id) {
+          return { ...r, intervalDays: template.lightProtectionIntervalDays };
+        }
+        return r;
+      }));
+    } else {
+      setReminders(prev => [...prev, {
+        id: `rem_${Date.now()}_lp`,
+        collectionId,
+        collectionName: collection.characterName,
+        type: 'light_protection',
+        nextDate: new Date(Date.now() + template.lightProtectionIntervalDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        intervalDays: template.lightProtectionIntervalDays,
+        material: collection.material,
+        seriesName: collection.seriesName
+      }]);
+    }
+
+    console.log('[Template] Applied template to collection:', templateId, collectionId);
+  }, [maintenanceTemplates, allCollections, reminders]);
+
+  const startInventory = useCallback((cabinet: string): InventoryRecord => {
+    const cabinetItems = allCollections.filter(item => {
+      if (item.collectionStatus === 'sold') return false;
+      const pos = item.cabinetPosition;
+      return pos && pos.cabinet === cabinet;
+    });
+
+    const checkItems: InventoryCheckItem[] = cabinetItems.map(item => ({
+      collectionId: item.id,
+      collectionName: item.characterName,
+      expectedStatus: item.collectionStatus,
+      actualStatus: item.collectionStatus,
+      isMatch: true
+    }));
+
+    const record: InventoryRecord = {
+      id: `inv_${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      cabinet,
+      items: checkItems
+    };
+
+    setInventoryRecords(prev => [...prev, record]);
+    console.log('[Inventory] Started inventory:', record);
+    return record;
+  }, [allCollections]);
+
+  const updateInventoryItem = useCallback((inventoryId: string, itemId: string, actualStatus: CollectionItem['collectionStatus'], notes?: string) => {
+    setInventoryRecords(prev => prev.map(record => {
+      if (record.id === inventoryId) {
+        return {
+          ...record,
+          items: record.items.map(item => {
+            if (item.collectionId === itemId) {
+              return {
+                ...item,
+                actualStatus,
+                isMatch: item.expectedStatus === actualStatus,
+                notes
+              };
+            }
+            return item;
+          })
+        };
+      }
+      return record;
+    }));
+
+    setRawCollections(prev => prev.map(item => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          collectionStatus: actualStatus,
+          inventoryStatus: 'checked',
+          lastInventoryDate: new Date().toISOString().split('T')[0]
+        };
+      }
+      return item;
+    }));
+  }, []);
+
+  const completeInventory = useCallback((inventoryId: string) => {
+    setInventoryRecords(prev => prev.map(record => {
+      if (record.id === inventoryId) {
+        return { ...record, completedAt: new Date().toISOString().split('T')[0] };
+      }
+      return record;
+    }));
+    console.log('[Inventory] Completed inventory:', inventoryId);
+  }, []);
+
+  const getLatestInventoryDate = useCallback((): string | null => {
+    const completed = inventoryRecords.filter(r => r.completedAt);
+    if (completed.length === 0) return null;
+    return completed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date;
+  }, [inventoryRecords]);
+
+  const getInventoryDiscrepancies = useCallback((inventoryId: string): InventoryCheckItem[] => {
+    const record = inventoryRecords.find(r => r.id === inventoryId);
+    if (!record) return [];
+    return record.items.filter(item => !item.isMatch);
+  }, [inventoryRecords]);
+
   const showcaseSortedCollections = useMemo(() => {
-    let result = [...allCollections];
+    let result = allCollections.filter(item => item.collectionStatus !== 'sold');
     if (showcaseSeries) {
       result = result.filter(item => item.seriesName === showcaseSeries);
     }
@@ -445,6 +707,8 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       allCollections,
       collections: showcaseSortedCollections,
       reminders,
+      maintenanceTemplates,
+      inventoryRecords,
       showcaseSeries,
       setShowcaseSeries,
       getCollectionById,
@@ -467,7 +731,20 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       markBalancePaid,
       addPhotos,
       removePhoto,
-      getTimeline
+      setCoverPhoto,
+      getCoverPhoto,
+      getTimeline,
+      markUnboxed,
+      addMaintenanceTemplate,
+      updateMaintenanceTemplate,
+      deleteMaintenanceTemplate,
+      applyTemplateToCollection,
+      startInventory,
+      updateInventoryItem,
+      completeInventory,
+      getLatestInventoryDate,
+      getInventoryDiscrepancies,
+      getActiveCollections
     }}>
       {children}
     </CollectionContext.Provider>

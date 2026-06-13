@@ -4,9 +4,30 @@ import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
 import styles from './index.module.scss';
 import { useCollection } from '../../store/CollectionContext';
-import { formatPrice, getMaintenanceTypeText, getFlawStatusText, getPartStatusText, getTimelineTypeText, getTimelineTypeIcon } from '../../utils';
+import { CollectionItem } from '../../types/collection';
+import {
+  formatPrice,
+  getMaintenanceTypeText,
+  getFlawStatusText,
+  getPartStatusText,
+  getTimelineTypeText,
+  getTimelineTypeIcon,
+  getCollectionStatusText,
+  getCollectionStatusIcon,
+  getInventoryStatusText,
+  getInventoryStatusIcon,
+  getMaterialText
+} from '../../utils';
 
 type AddModalType = 'maintenance' | 'flaw' | 'part' | null;
+type CollectionStatus = CollectionItem['collectionStatus'];
+
+const STATUS_OPTIONS: { value: CollectionStatus; label: string }[] = [
+  { value: 'in_cabinet', label: '在柜' },
+  { value: 'loaned', label: '借出' },
+  { value: 'sold', label: '已出' },
+  { value: 'pending_confirm', label: '待确认' }
+];
 
 const DetailPage: React.FC = () => {
   const router = useRouter();
@@ -21,11 +42,16 @@ const DetailPage: React.FC = () => {
     updatePartStatus,
     addPhotos,
     removePhoto,
+    setCoverPhoto,
+    getCoverPhoto,
+    markUnboxed,
     getTimeline
   } = useCollection();
   const [activeTab, setActiveTab] = useState<'timeline' | 'flaws' | 'parts' | 'maintenance'>('timeline');
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [showAddModal, setShowAddModal] = useState<AddModalType>(null);
+  const [salePriceInput, setSalePriceInput] = useState('');
+  const [showSalePriceModal, setShowSalePriceModal] = useState(false);
 
   const [maintForm, setMaintForm] = useState({
     type: 'dust' as 'dust' | 'light_protection' | 'other',
@@ -46,6 +72,7 @@ const DetailPage: React.FC = () => {
   const id = router.params.id as string;
   const item = useMemo(() => getCollectionById(id), [id, getCollectionById]);
   const timeline = useMemo(() => getTimeline(id), [id, getTimeline]);
+  const coverPhoto = useMemo(() => item ? getCoverPhoto(item) : '', [item, getCoverPhoto]);
 
   if (!item) {
     return (
@@ -59,11 +86,39 @@ const DetailPage: React.FC = () => {
   }
 
   const handleToggleUnboxed = () => {
-    updateCollection(item.id, { isUnboxed: !item.isUnboxed });
-    Taro.showToast({
-      title: item.isUnboxed ? '已标记为未拆封' : '已标记为已拆封',
-      icon: 'success'
-    });
+    if (item.isUnboxed) {
+      updateCollection(item.id, { isUnboxed: false, unboxedDate: undefined });
+      Taro.showToast({ title: '已标记为未拆封', icon: 'success' });
+    } else {
+      markUnboxed(item.id);
+      Taro.showToast({ title: '已标记为已拆封', icon: 'success' });
+    }
+  };
+
+  const handleSetCover = (index: number) => {
+    setCoverPhoto(item.id, index);
+    Taro.showToast({ title: '已设为封面', icon: 'success' });
+  };
+
+  const handleStatusChange = (newStatus: CollectionStatus) => {
+    if (newStatus === 'sold') {
+      setShowSalePriceModal(true);
+      return;
+    }
+    updateCollection(item.id, { collectionStatus: newStatus });
+    Taro.showToast({ title: `状态已更新为${getCollectionStatusText(newStatus)}`, icon: 'success' });
+  };
+
+  const handleSalePriceConfirm = () => {
+    const price = parseFloat(salePriceInput);
+    if (isNaN(price) || price < 0) {
+      Taro.showToast({ title: '请输入有效的出手价', icon: 'none' });
+      return;
+    }
+    updateCollection(item.id, { collectionStatus: 'sold', salePrice: price });
+    setShowSalePriceModal(false);
+    setSalePriceInput('');
+    Taro.showToast({ title: '已标记为已出', icon: 'success' });
   };
 
   const handleDelete = () => {
@@ -209,6 +264,14 @@ const DetailPage: React.FC = () => {
               <View className={styles.photoDeleteBtn} onClick={() => handleDeletePhoto(index)}>
                 <Text>×</Text>
               </View>
+              {photo === coverPhoto && (
+                <View className={styles.coverStar}>
+                  <Text>⭐</Text>
+                </View>
+              )}
+              <View className={styles.setCoverBtn} onClick={() => handleSetCover(index)}>
+                <Text>{photo === coverPhoto ? '当前封面' : '设为封面'}</Text>
+              </View>
             </SwiperItem>
           ))}
         </Swiper>
@@ -234,6 +297,9 @@ const DetailPage: React.FC = () => {
           <View className={styles.nameRow}>
             <Text className={styles.characterName}>{item.characterName}</Text>
             <View className={styles.statusTags}>
+              <View className={classnames(styles.statusTag, styles[item.collectionStatus])}>
+                <Text>{getCollectionStatusIcon(item.collectionStatus)} {getCollectionStatusText(item.collectionStatus)}</Text>
+              </View>
               {!item.hasArrived && (
                 <View className={classnames(styles.statusTag, styles.pending)}>
                   <Text>待到货</Text>
@@ -268,12 +334,34 @@ const DetailPage: React.FC = () => {
               <Text className={styles.metaLabel}>厂商</Text>
               <Text className={styles.metaValue}>{item.manufacturer}</Text>
             </View>
+            {item.material && (
+              <View className={styles.metaItem}>
+                <Text className={styles.metaLabel}>材质</Text>
+                <Text className={styles.metaValue}>{getMaterialText(item.material)}</Text>
+              </View>
+            )}
             <View className={styles.metaItem}>
               <Text className={styles.metaLabel}>购买价格</Text>
               <Text className={classnames(styles.metaValue, styles.price)}>
                 {formatPrice(item.purchasePrice)}
               </Text>
             </View>
+            {item.currentValue != null && (
+              <View className={styles.metaItem}>
+                <Text className={styles.metaLabel}>当前估值</Text>
+                <Text className={classnames(styles.metaValue, styles.price)}>
+                  {formatPrice(item.currentValue)}
+                </Text>
+              </View>
+            )}
+            {item.collectionStatus === 'sold' && item.salePrice != null && (
+              <View className={styles.metaItem}>
+                <Text className={styles.metaLabel}>出手价</Text>
+                <Text className={classnames(styles.metaValue, styles.price)}>
+                  {formatPrice(item.salePrice)}
+                </Text>
+              </View>
+            )}
             <View className={styles.metaItem}>
               <Text className={styles.metaLabel}>购买日期</Text>
               <Text className={styles.metaValue}>{item.purchaseDate}</Text>
@@ -288,6 +376,20 @@ const DetailPage: React.FC = () => {
                 {item.hasArrived ? item.arrivalDate || '已到货' : '待到货'}
               </Text>
             </View>
+            {item.unboxedDate && (
+              <View className={styles.metaItem}>
+                <Text className={styles.metaLabel}>拆封日期</Text>
+                <Text className={styles.metaValue}>{item.unboxedDate}</Text>
+              </View>
+            )}
+            {item.inventoryStatus && (
+              <View className={styles.metaItem}>
+                <Text className={styles.metaLabel}>盘点状态</Text>
+                <Text className={styles.metaValue}>
+                  {getInventoryStatusIcon(item.inventoryStatus)} {getInventoryStatusText(item.inventoryStatus)}
+                </Text>
+              </View>
+            )}
             {item.reservationDate && (
               <View className={styles.metaItem}>
                 <Text className={styles.metaLabel}>预订日期</Text>
@@ -302,6 +404,25 @@ const DetailPage: React.FC = () => {
                 </Text>
               </View>
             )}
+          </View>
+
+          <View className={styles.statusSelector}>
+            <Text className={styles.statusSelectorLabel}>收藏状态</Text>
+            <View className={styles.statusSelectorOptions}>
+              {STATUS_OPTIONS.map(opt => (
+                <Button
+                  key={opt.value}
+                  className={classnames(
+                    styles.statusOptionBtn,
+                    item.collectionStatus === opt.value && styles.statusOptionActive,
+                    opt.value === 'sold' && styles.statusOptionSold
+                  )}
+                  onClick={() => handleStatusChange(opt.value)}
+                >
+                  <Text>{getCollectionStatusIcon(opt.value)} {opt.label}</Text>
+                </Button>
+              ))}
+            </View>
           </View>
 
           {item.notes && (
@@ -519,6 +640,33 @@ const DetailPage: React.FC = () => {
           <Text>删除</Text>
         </Button>
       </View>
+
+      {showSalePriceModal && (
+        <View className={styles.modalOverlay} onClick={() => { setShowSalePriceModal(false); setSalePriceInput(''); }}>
+          <View className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <Text className={styles.modalTitle}>填写出手价</Text>
+            <View className={styles.modalField}>
+              <Text className={styles.modalLabel}>出手价格</Text>
+              <Input
+                className={styles.modalInput}
+                type="digit"
+                placeholder="请输入出手价格"
+                placeholderTextColor="#64748B"
+                value={salePriceInput}
+                onInput={(e) => setSalePriceInput(e.detail.value)}
+              />
+            </View>
+            <View className={styles.modalActions}>
+              <Button className={styles.modalCancelBtn} onClick={() => { setShowSalePriceModal(false); setSalePriceInput(''); }}>
+                <Text>取消</Text>
+              </Button>
+              <Button className={styles.modalConfirmBtn} onClick={handleSalePriceConfirm}>
+                <Text>确认</Text>
+              </Button>
+            </View>
+          </View>
+        </View>
+      )}
 
       {showAddModal && (
         <View className={styles.modalOverlay} onClick={() => setShowAddModal(null)}>

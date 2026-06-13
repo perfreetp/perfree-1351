@@ -7,11 +7,12 @@ import { formatPrice, getDaysUntil } from '../../utils';
 
 interface PlanCardProps {
   item: CollectionItem;
+  coverPhoto?: string;
   onPayBalance?: () => void;
   onMarkArrived?: () => void;
 }
 
-const PlanCard: React.FC<PlanCardProps> = ({ item, onPayBalance, onMarkArrived }) => {
+const PlanCard: React.FC<PlanCardProps> = ({ item, coverPhoto, onPayBalance, onMarkArrived }) => {
   const daysUntil = item.balanceDueDate ? getDaysUntil(item.balanceDueDate) : 0;
   const isUrgent = daysUntil > 0 && daysUntil <= 7;
   const isOverdue = daysUntil < 0;
@@ -20,7 +21,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ item, onPayBalance, onMarkArrived }
     <View className={styles.card}>
       <View className={styles.imageWrapper}>
         <Image 
-          src={item.photos[0]} 
+          src={coverPhoto || item.photos[0]}
           mode="aspectFill" 
           className={styles.image}
           onError={(e) => console.error('[Image] Failed to load:', e)}

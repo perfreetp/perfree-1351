@@ -32,6 +32,16 @@
   border-radius: $radius-lg;
   padding: $spacing-md;
   box-shadow: $shadow-card;
+
+  &.overdue {
+    border: 3rpx solid $color-error;
+    background-color: rgba(239, 68, 68, 0.05);
+  }
+
+  &.dueToday {
+    border: 3rpx solid $color-warning;
+    background-color: rgba(245, 158, 11, 0.05);
+  }
 }
 
 .reminderIcon {
@@ -69,10 +79,46 @@
   margin-top: $spacing-xs;
 }
 
+.reminderDateRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-top: $spacing-xs;
+}
+
 .reminderDate {
   font-size: $font-size-xs;
   color: $color-text-tertiary;
-  margin-top: $spacing-xs;
+
+  &.overdueText {
+    color: $color-error;
+    font-weight: $font-weight-medium;
+  }
+
+  &.dueTodayText {
+    color: $color-warning;
+    font-weight: $font-weight-medium;
+  }
+}
+
+.overdueTag {
+  display: inline-block;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  background-color: rgba(239, 68, 68, 0.2);
+  color: $color-error;
+}
+
+.dueTodayTag {
+  display: inline-block;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  background-color: rgba(245, 158, 11, 0.2);
+  color: $color-warning;
 }
 
 .reminderAction {
@@ -87,6 +133,185 @@
 
   &:active {
     transform: scale(0.98);
+    opacity: 0.9;
+  }
+}
+
+.templateSection {
+  margin: 0 $page-padding;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  overflow: hidden;
+}
+
+.templateHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+
+  .sectionTitle {
+    margin-bottom: 0;
+  }
+}
+
+.templateArrow {
+  font-size: $font-size-lg;
+  color: $color-text-tertiary;
+  transition: transform $transition-base;
+
+  &.expanded {
+    transform: rotate(90deg);
+  }
+}
+
+.templateBody {
+  padding: 0 $spacing-lg $spacing-lg;
+}
+
+.templateList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.templateCard {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.templateInfo {
+  flex: 1;
+}
+
+.templateName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.templateDetail {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  margin-top: $spacing-xs;
+}
+
+.deleteTemplateBtn {
+  @include button-reset;
+  padding: $spacing-xs $spacing-sm;
+  background-color: rgba(239, 68, 68, 0.15);
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  color: $color-error;
+  flex-shrink: 0;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.addTemplateBtn {
+  @include button-reset;
+  width: 100%;
+  padding: $spacing-md;
+  background-color: rgba(124, 58, 237, 0.1);
+  border: 2rpx dashed $color-primary;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.templateForm {
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-top: $spacing-sm;
+}
+
+.formField {
+  margin-bottom: $spacing-md;
+}
+
+.formLabel {
+  display: block;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+}
+
+.formInput {
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  background-color: $color-bg-card;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  box-sizing: border-box;
+}
+
+.formPicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  background-color: $color-bg-card;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  box-sizing: border-box;
+}
+
+.pickerArrow {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.formActions {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
+}
+
+.formCancelBtn {
+  @include button-reset;
+  flex: 1;
+  padding: $spacing-md;
+  background-color: $color-bg-card;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.formConfirmBtn {
+  @include button-reset;
+  flex: 1;
+  padding: $spacing-md;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+
+  &:active {
     opacity: 0.9;
   }
 }
@@ -285,6 +510,8 @@
   &.arrival { background-color: $color-success; box-shadow: 0 0 8rpx rgba(16, 185, 129, 0.4); }
   &.unbox { background-color: #A78BFA; box-shadow: 0 0 8rpx rgba(167, 139, 250, 0.4); }
   &.purchase { background-color: #64748B; box-shadow: 0 0 8rpx rgba(100, 116, 139, 0.4); }
+  &.sold { background-color: $color-error; box-shadow: 0 0 8rpx rgba(239, 68, 68, 0.4); }
+  &.inventory { background-color: $color-info; box-shadow: 0 0 8rpx rgba(59, 130, 246, 0.4); }
 }
 
 .timelineLine {
@@ -343,6 +570,8 @@
   &.arrival { background-color: rgba(16, 185, 129, 0.15); color: $color-success; }
   &.unbox { background-color: rgba(167, 139, 250, 0.15); color: #A78BFA; }
   &.purchase { background-color: rgba(100, 116, 139, 0.15); color: $color-text-tertiary; }
+  &.sold { background-color: rgba(239, 68, 68, 0.15); color: $color-error; }
+  &.inventory { background-color: rgba(59, 130, 246, 0.15); color: $color-info; }
 }
 
 .timelineDate {

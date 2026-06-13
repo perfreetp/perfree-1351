@@ -15,6 +15,7 @@ const ShowcasePage: React.FC = () => {
     showcaseSeries,
     setShowcaseSeries,
     getSeriesList,
+    getCoverPhoto,
     sortType,
     setSortType,
   } = useCollection();
@@ -171,6 +172,7 @@ const ShowcasePage: React.FC = () => {
               <CollectionCard
                 key={item.id}
                 item={item}
+                coverPhoto={getCoverPhoto(item)}
                 mode={viewMode}
               />
             ))}

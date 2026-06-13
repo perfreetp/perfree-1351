@@ -9,7 +9,7 @@ import { CollectionItem } from '../../types/collection';
 import { getDaysUntil, formatPrice } from '../../utils';
 
 const PlanPage: React.FC = () => {
-  const { allCollections, markArrived, markBalancePaid, getSeriesList } = useCollection();
+  const { allCollections, markArrived, markBalancePaid, getSeriesList, getCoverPhoto } = useCollection();
   const [activeTab, setActiveTab] = useState<'pending' | 'arrived'>('pending');
   const [filterSeries, setFilterSeries] = useState<number>(0);
 
@@ -152,6 +152,7 @@ const PlanPage: React.FC = () => {
                   <View key={item.id} onClick={() => handleItemClick(item)}>
                     <PlanCard
                       item={item}
+                      coverPhoto={getCoverPhoto(item)}
                       onPayBalance={() => handlePayBalance(item)}
                       onMarkArrived={() => handleMarkArrived(item)}
                     />
@@ -178,7 +179,7 @@ const PlanPage: React.FC = () => {
                   >
                     <View className={styles.arrivedImageWrapper}>
                       <Image
-                        src={item.photos[0]}
+                        src={getCoverPhoto(item) || item.photos[0]}
                         mode="aspectFill"
                         className={styles.arrivedImage}
                         onError={(e) => console.error('[Image] Failed to load:', e)}

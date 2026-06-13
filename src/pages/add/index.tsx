@@ -6,6 +6,33 @@ import { useCollection } from '../../store/CollectionContext';
 import { CollectionItem } from '../../types/collection';
 
 const scaleOptions = ['1/4', '1/6', '1/7', '1/8', '1/10', 'Figma', 'Nendoroid', '其他'];
+const materialOptions = ['PVC', 'ABS', '树脂', '宝丽石', '软胶', '合金', '混合材质'];
+const statusOptions = ['在柜', '借出', '已出', '待确认'];
+
+const materialMap: Record<string, string> = {
+  'PVC': 'pvc',
+  'ABS': 'abs',
+  '树脂': 'resin',
+  '宝丽石': 'polystone',
+  '软胶': 'vinyl',
+  '合金': 'metal',
+  '混合材质': 'mixed'
+};
+
+const statusMap: Record<string, string> = {
+  '在柜': 'in_cabinet',
+  '借出': 'loaned',
+  '已出': 'sold',
+  '待确认': 'pending_confirm'
+};
+
+const materialReverseMap: Record<string, string> = Object.fromEntries(
+  Object.entries(materialMap).map(([k, v]) => [v, k])
+);
+
+const statusReverseMap: Record<string, string> = Object.fromEntries(
+  Object.entries(statusMap).map(([k, v]) => [v, k])
+);
 
 const AddPage: React.FC = () => {
   const router = useRouter();
@@ -18,11 +45,15 @@ const AddPage: React.FC = () => {
     seriesName: '',
     scale: '1/7',
     manufacturer: '',
+    material: 'PVC',
     purchasePrice: '',
+    currentValue: '',
     purchaseDate: new Date().toISOString().split('T')[0],
     displayLocation: '',
     isUnboxed: false,
     hasArrived: true,
+    collectionStatus: '在柜',
+    salePrice: '',
     reservationDate: '',
     balanceDueDate: '',
     notes: ''
@@ -39,11 +70,15 @@ const AddPage: React.FC = () => {
           seriesName: item.seriesName,
           scale: item.scale,
           manufacturer: item.manufacturer,
+          material: materialReverseMap[item.material || ''] || 'PVC',
           purchasePrice: String(item.purchasePrice),
+          currentValue: item.currentValue != null ? String(item.currentValue) : '',
           purchaseDate: item.purchaseDate,
           displayLocation: item.displayLocation,
           isUnboxed: item.isUnboxed,
           hasArrived: item.hasArrived,
+          collectionStatus: statusReverseMap[item.collectionStatus] || '在柜',
+          salePrice: item.salePrice != null ? String(item.salePrice) : '',
           reservationDate: item.reservationDate || '',
           balanceDueDate: item.balanceDueDate || '',
           notes: item.notes
@@ -58,6 +93,9 @@ const AddPage: React.FC = () => {
       const newData = { ...prev, [field]: value };
       if (field === 'hasArrived' && value === true) {
         newData.isUnboxed = false;
+      }
+      if (field === 'collectionStatus' && value !== '已出') {
+        newData.salePrice = '';
       }
       return newData;
     });
@@ -109,18 +147,30 @@ const AddPage: React.FC = () => {
       ? photos
       : [`https://picsum.photos/id/${Math.floor(Math.random() * 100) + 1}/300/300`];
 
+    const mappedMaterial = materialMap[formData.material] || 'pvc';
+    const mappedStatus = statusMap[formData.collectionStatus] as CollectionItem['collectionStatus'];
+    const mappedCurrentValue = formData.currentValue ? parseFloat(formData.currentValue) || undefined : undefined;
+    const mappedSalePrice = formData.salePrice && formData.collectionStatus === '已出'
+      ? parseFloat(formData.salePrice) || undefined
+      : undefined;
+
     if (isEdit && editId) {
       updateCollection(editId, {
         characterName: formData.characterName.trim(),
         seriesName: formData.seriesName.trim(),
         scale: formData.scale,
         manufacturer: formData.manufacturer.trim(),
+        material: mappedMaterial,
         purchasePrice: parseFloat(formData.purchasePrice as string) || 0,
+        currentValue: mappedCurrentValue,
+        salePrice: mappedSalePrice,
         purchaseDate: formData.purchaseDate,
         photos: photoUrls,
+        coverPhotoIndex: 0,
         displayLocation: formData.displayLocation.trim() || '待摆放',
         isUnboxed: formData.isUnboxed,
         hasArrived: formData.hasArrived,
+        collectionStatus: mappedStatus,
         reservationDate: formData.reservationDate || undefined,
         balanceDueDate: formData.balanceDueDate || undefined,
         arrivalDate: formData.hasArrived ? (formData.purchaseDate) : undefined,
@@ -133,14 +183,19 @@ const AddPage: React.FC = () => {
         seriesName: formData.seriesName.trim(),
         scale: formData.scale,
         manufacturer: formData.manufacturer.trim(),
+        material: mappedMaterial,
         purchasePrice: parseFloat(formData.purchasePrice as string) || 0,
+        currentValue: mappedCurrentValue,
+        salePrice: mappedSalePrice,
         purchaseDate: formData.purchaseDate,
         photos: photoUrls,
+        coverPhotoIndex: 0,
         displayLocation: formData.hasArrived
           ? (formData.displayLocation.trim() || '待摆放')
           : '待到货',
         isUnboxed: formData.isUnboxed,
         hasArrived: formData.hasArrived,
+        collectionStatus: mappedStatus,
         reservationDate: formData.reservationDate || undefined,
         balanceDueDate: formData.balanceDueDate || undefined,
         arrivalDate: formData.hasArrived ? formData.purchaseDate : undefined,
@@ -168,11 +223,15 @@ const AddPage: React.FC = () => {
           seriesName: item.seriesName,
           scale: item.scale,
           manufacturer: item.manufacturer,
+          material: materialReverseMap[item.material || ''] || 'PVC',
           purchasePrice: String(item.purchasePrice),
+          currentValue: item.currentValue != null ? String(item.currentValue) : '',
           purchaseDate: item.purchaseDate,
           displayLocation: item.displayLocation,
           isUnboxed: item.isUnboxed,
           hasArrived: item.hasArrived,
+          collectionStatus: statusReverseMap[item.collectionStatus] || '在柜',
+          salePrice: item.salePrice != null ? String(item.salePrice) : '',
           reservationDate: item.reservationDate || '',
           balanceDueDate: item.balanceDueDate || '',
           notes: item.notes
@@ -185,11 +244,15 @@ const AddPage: React.FC = () => {
         seriesName: '',
         scale: '1/7',
         manufacturer: '',
+        material: 'PVC',
         purchasePrice: '',
+        currentValue: '',
         purchaseDate: new Date().toISOString().split('T')[0],
         displayLocation: '',
         isUnboxed: false,
         hasArrived: true,
+        collectionStatus: '在柜',
+        salePrice: '',
         reservationDate: '',
         balanceDueDate: '',
         notes: ''
@@ -254,6 +317,21 @@ const AddPage: React.FC = () => {
             </View>
 
             <View className={styles.formItem}>
+              <Text className={styles.formLabel}>材质</Text>
+              <Picker
+                mode="selector"
+                range={materialOptions}
+                value={materialOptions.indexOf(formData.material) >= 0 ? materialOptions.indexOf(formData.material) : 0}
+                onChange={(e) => handleInputChange('material', materialOptions[e.detail.value])}
+              >
+                <View className={styles.formInput}>
+                  <Text className={styles.pickerText}>{formData.material}</Text>
+                  <Text className={styles.pickerArrow}>▾</Text>
+                </View>
+              </Picker>
+            </View>
+
+            <View className={styles.formItem}>
               <Text className={styles.formLabel}>购买价格（元）</Text>
               <Input
                 className={styles.formInput}
@@ -262,6 +340,18 @@ const AddPage: React.FC = () => {
                 placeholderTextColor="#64748B"
                 value={formData.purchasePrice as string}
                 onInput={(e) => handleInputChange('purchasePrice', e.detail.value)}
+              />
+            </View>
+
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>当前估值（元）</Text>
+              <Input
+                className={styles.formInput}
+                type="digit"
+                placeholder="选填，请输入当前估值"
+                placeholderTextColor="#64748B"
+                value={formData.currentValue as string}
+                onInput={(e) => handleInputChange('currentValue', e.detail.value)}
               />
             </View>
 
@@ -303,6 +393,39 @@ const AddPage: React.FC = () => {
                 </View>
               )}
             </View>
+          </View>
+
+          <View className={styles.formSection}>
+            <Text className={styles.sectionTitle}>收藏状态</Text>
+
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>状态</Text>
+              <Picker
+                mode="selector"
+                range={statusOptions}
+                value={statusOptions.indexOf(formData.collectionStatus) >= 0 ? statusOptions.indexOf(formData.collectionStatus) : 0}
+                onChange={(e) => handleInputChange('collectionStatus', statusOptions[e.detail.value])}
+              >
+                <View className={styles.formInput}>
+                  <Text className={styles.pickerText}>{formData.collectionStatus}</Text>
+                  <Text className={styles.pickerArrow}>▾</Text>
+                </View>
+              </Picker>
+            </View>
+
+            {formData.collectionStatus === '已出' && (
+              <View className={styles.formItem}>
+                <Text className={styles.formLabel}>出手价（元）</Text>
+                <Input
+                  className={styles.formInput}
+                  type="digit"
+                  placeholder="请输入出手价格"
+                  placeholderTextColor="#64748B"
+                  value={formData.salePrice as string}
+                  onInput={(e) => handleInputChange('salePrice', e.detail.value)}
+                />
+              </View>
+            )}
           </View>
 
           <View className={styles.formSection}>

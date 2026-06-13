@@ -39,6 +39,44 @@ export const getPartStatusText = (status: string): string => {
   return status === 'pending' ? '待补发' : '已收到';
 };
 
+export const getCollectionStatusText = (status: string): string => {
+  const map: Record<string, string> = {
+    in_cabinet: '在柜',
+    loaned: '借出',
+    sold: '已出',
+    pending_confirm: '待确认'
+  };
+  return map[status] || status;
+};
+
+export const getCollectionStatusIcon = (status: string): string => {
+  const map: Record<string, string> = {
+    in_cabinet: '🏠',
+    loaned: '🤝',
+    sold: '💰',
+    pending_confirm: '❓'
+  };
+  return map[status] || '📋';
+};
+
+export const getInventoryStatusText = (status: string): string => {
+  const map: Record<string, string> = {
+    checked: '已核对',
+    mismatch: '有差异',
+    unchecked: '未核对'
+  };
+  return map[status] || status;
+};
+
+export const getInventoryStatusIcon = (status: string): string => {
+  const map: Record<string, string> = {
+    checked: '✅',
+    mismatch: '⚠️',
+    unchecked: '⬜'
+  };
+  return map[status] || '⬜';
+};
+
 export const getTimelineTypeText = (type: string): string => {
   const map: Record<string, string> = {
     dust: '除尘保养',
@@ -48,7 +86,9 @@ export const getTimelineTypeText = (type: string): string => {
     part: '补件进度',
     arrival: '到货签收',
     unbox: '拆封展示',
-    purchase: '购入记录'
+    purchase: '购入记录',
+    sold: '出手记录',
+    inventory: '盘点核对'
   };
   return map[type] || type;
 };
@@ -62,7 +102,22 @@ export const getTimelineTypeIcon = (type: string): string => {
     part: '📦',
     arrival: '✅',
     unbox: '🎁',
-    purchase: '🛒'
+    purchase: '🛒',
+    sold: '💰',
+    inventory: '🔍'
   };
   return map[type] || '📋';
+};
+
+export const getMaterialText = (material: string): string => {
+  const map: Record<string, string> = {
+    pvc: 'PVC',
+    abs: 'ABS',
+    resin: '树脂',
+    polystone: '宝丽石',
+    vinyl: '软胶',
+    metal: '合金',
+    mixed: '混合材质'
+  };
+  return map[material] || material;
 };

@@ -8,7 +8,7 @@ import { formatPrice } from '../../utils';
 
 const SharePage: React.FC = () => {
   const router = useRouter();
-  const { getCollectionsBySeries } = useCollection();
+  const { getCollectionsBySeries, getCoverPhoto } = useCollection();
   
   const seriesName = useMemo(() => {
     return decodeURIComponent(router.params.series as string || '');
@@ -78,7 +78,7 @@ const SharePage: React.FC = () => {
           {collections.length > 0 ? (
             <View className={styles.grid}>
               {collections.map(item => (
-                <CollectionCard key={item.id} item={item} />
+                <CollectionCard key={item.id} item={item} coverPhoto={getCoverPhoto(item)} />
               ))}
             </View>
           ) : (

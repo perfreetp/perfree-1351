@@ -153,8 +153,17 @@ const AddPage: React.FC = () => {
     const mappedSalePrice = formData.salePrice && formData.collectionStatus === '已出'
       ? parseFloat(formData.salePrice) || undefined
       : undefined;
+    const today = new Date().toISOString().split('T')[0];
 
     if (isEdit && editId) {
+      const existingItem = getCollectionById(editId);
+      let unboxedDate = existingItem?.unboxedDate;
+      if (formData.isUnboxed) {
+        unboxedDate = unboxedDate || today;
+      } else {
+        unboxedDate = undefined;
+      }
+
       updateCollection(editId, {
         characterName: formData.characterName.trim(),
         seriesName: formData.seriesName.trim(),
@@ -169,6 +178,7 @@ const AddPage: React.FC = () => {
         coverPhotoIndex: 0,
         displayLocation: formData.displayLocation.trim() || '待摆放',
         isUnboxed: formData.isUnboxed,
+        unboxedDate,
         hasArrived: formData.hasArrived,
         collectionStatus: mappedStatus,
         reservationDate: formData.reservationDate || undefined,
@@ -178,6 +188,7 @@ const AddPage: React.FC = () => {
       });
       Taro.showToast({ title: '保存成功', icon: 'success' });
     } else {
+      const unboxedDate = formData.isUnboxed ? today : undefined;
       const newItem: Omit<CollectionItem, 'id' | 'createdAt' | 'sortOrder'> = {
         characterName: formData.characterName.trim(),
         seriesName: formData.seriesName.trim(),
@@ -194,6 +205,7 @@ const AddPage: React.FC = () => {
           ? (formData.displayLocation.trim() || '待摆放')
           : '待到货',
         isUnboxed: formData.isUnboxed,
+        unboxedDate,
         hasArrived: formData.hasArrived,
         collectionStatus: mappedStatus,
         reservationDate: formData.reservationDate || undefined,

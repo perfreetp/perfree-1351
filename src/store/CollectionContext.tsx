@@ -175,13 +175,17 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
     setRawCollections(prev => [...prev, newItem]);
 
-    if (newItem.hasArrived && newItem.isUnboxed) {
+    if (newItem.hasArrived && newItem.collectionStatus !== 'sold') {
       const template = maintenanceTemplates.find(t =>
-        t.material === newItem.material || t.seriesName === newItem.seriesName
+        (t.material && t.material === newItem.material) ||
+        (t.seriesName && t.seriesName === newItem.seriesName)
       );
       const dustDays = template?.dustIntervalDays || 30;
-      const newReminder: MaintenanceReminder = {
-        id: `rem_${Date.now()}`,
+      const lightDays = template?.lightProtectionIntervalDays || 45;
+
+      const newReminders: MaintenanceReminder[] = [];
+      newReminders.push({
+        id: `rem_${Date.now()}_dust`,
         collectionId: newItem.id,
         collectionName: newItem.characterName,
         type: 'dust',
@@ -189,8 +193,18 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         intervalDays: dustDays,
         material: newItem.material,
         seriesName: newItem.seriesName
-      };
-      setReminders(prev => [...prev, newReminder]);
+      });
+      newReminders.push({
+        id: `rem_${Date.now()}_lp`,
+        collectionId: newItem.id,
+        collectionName: newItem.characterName,
+        type: 'light_protection',
+        nextDate: new Date(Date.now() + lightDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        intervalDays: lightDays,
+        material: newItem.material,
+        seriesName: newItem.seriesName
+      });
+      setReminders(prev => [...prev, ...newReminders]);
     }
 
     console.log('[Collection] Added new collection:', newItem);
@@ -509,8 +523,56 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       id: `tpl_${Date.now()}`
     };
     setMaintenanceTemplates(prev => [...prev, newTemplate]);
-    console.log('[Template] Added maintenance template:', newTemplate);
-  }, []);
+
+    const matchedItems = allCollections.filter(item =>
+      item.hasArrived && item.collectionStatus !== 'sold' && (
+        (newTemplate.material && item.material === newTemplate.material) ||
+        (newTemplate.seriesName && item.seriesName === newTemplate.seriesName)
+      )
+    );
+
+    if (matchedItems.length > 0) {
+      setReminders(prev => {
+        const next = [...prev];
+        matchedItems.forEach(item => {
+          const existingDust = next.find(r => r.collectionId === item.id && r.type === 'dust');
+          if (existingDust) {
+            existingDust.intervalDays = newTemplate.dustIntervalDays;
+          } else {
+            next.push({
+              id: `rem_${Date.now()}_dust_${item.id}`,
+              collectionId: item.id,
+              collectionName: item.characterName,
+              type: 'dust',
+              nextDate: new Date(Date.now() + newTemplate.dustIntervalDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              intervalDays: newTemplate.dustIntervalDays,
+              material: item.material,
+              seriesName: item.seriesName
+            });
+          }
+
+          const existingLight = next.find(r => r.collectionId === item.id && r.type === 'light_protection');
+          if (existingLight) {
+            existingLight.intervalDays = newTemplate.lightProtectionIntervalDays;
+          } else {
+            next.push({
+              id: `rem_${Date.now()}_lp_${item.id}`,
+              collectionId: item.id,
+              collectionName: item.characterName,
+              type: 'light_protection',
+              nextDate: new Date(Date.now() + newTemplate.lightProtectionIntervalDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              intervalDays: newTemplate.lightProtectionIntervalDays,
+              material: item.material,
+              seriesName: item.seriesName
+            });
+          }
+        });
+        return next;
+      });
+    }
+
+    console.log('[Template] Added maintenance template and applied to', matchedItems.length, 'collections:', newTemplate);
+  }, [allCollections]);
 
   const updateMaintenanceTemplate = useCallback((id: string, updates: Partial<MaintenanceTemplate>) => {
     setMaintenanceTemplates(prev => prev.map(t =>
@@ -575,11 +637,16 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [maintenanceTemplates, allCollections, reminders]);
 
   const startInventory = useCallback((cabinet: string): InventoryRecord => {
-    const cabinetItems = allCollections.filter(item => {
-      if (item.collectionStatus === 'sold') return false;
-      const pos = item.cabinetPosition;
-      return pos && pos.cabinet === cabinet;
+    const cabinetData = cabinetLayout[cabinet] || {};
+    const placedIds: string[] = [];
+    Object.values(cabinetData).forEach(shelfIds => {
+      shelfIds.forEach(id => { if (id) placedIds.push(id); });
     });
+
+    const uniqueIds = Array.from(new Set(placedIds));
+    const cabinetItems = uniqueIds
+      .map(id => allCollections.find(item => item.id === id))
+      .filter((item): item is CollectionItem => !!item && item.collectionStatus !== 'sold');
 
     const checkItems: InventoryCheckItem[] = cabinetItems.map(item => ({
       collectionId: item.id,
@@ -599,7 +666,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setInventoryRecords(prev => [...prev, record]);
     console.log('[Inventory] Started inventory:', record);
     return record;
-  }, [allCollections]);
+  }, [allCollections, cabinetLayout]);
 
   const updateInventoryItem = useCallback((inventoryId: string, itemId: string, actualStatus: CollectionItem['collectionStatus'], notes?: string) => {
     setInventoryRecords(prev => prev.map(record => {

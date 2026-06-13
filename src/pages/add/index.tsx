@@ -70,8 +70,22 @@ const AddPage: React.FC = () => {
         sizeType: ['compressed'],
         sourceType: ['album', 'camera']
       });
-      setPhotos(prev => [...prev, ...res.tempFilePaths]);
-      console.log('[Add] Photos selected:', res.tempFilePaths);
+      const persistedPaths: string[] = [];
+      for (const tempPath of res.tempFilePaths) {
+        try {
+          if (tempPath.startsWith('http') || tempPath.startsWith('/')) {
+            persistedPaths.push(tempPath);
+          } else {
+            const saved = await Taro.saveFile({ tempFilePath: tempPath });
+            persistedPaths.push(saved.savedFilePath);
+          }
+        } catch (e) {
+          console.error('[Add] Failed to persist photo:', tempPath, e);
+          persistedPaths.push(tempPath);
+        }
+      }
+      setPhotos(prev => [...prev, ...persistedPaths]);
+      console.log('[Add] Photos selected and persisted:', persistedPaths);
     } catch (e) {
       console.error('[Add] Failed to choose image:', e);
     }

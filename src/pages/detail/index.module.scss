@@ -17,6 +17,48 @@
   height: 100%;
 }
 
+.photoDeleteBtn {
+  position: absolute;
+  top: $spacing-md;
+  right: $spacing-md;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  background-color: rgba(239, 68, 68, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-lg;
+  color: $color-text-white;
+  z-index: 10;
+}
+
+.photoActions {
+  position: absolute;
+  bottom: $spacing-md;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 $spacing-lg;
+  z-index: 10;
+}
+
+.addPhotoBtn {
+  @include button-reset;
+  padding: $spacing-xs $spacing-md;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: $radius-button;
+  font-size: $font-size-xs;
+  color: $color-text-white;
+  backdrop-filter: blur(8px);
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
 .infoSection {
   padding: $spacing-lg $page-padding;
   background-color: $color-bg-card;
@@ -144,8 +186,8 @@
 .tabBtn {
   @include button-reset;
   flex: 1;
-  padding: $spacing-md;
-  font-size: $font-size-sm;
+  padding: $spacing-sm $spacing-xs;
+  font-size: $font-size-xs;
   color: $color-text-secondary;
   transition: all $transition-base;
 
@@ -187,6 +229,185 @@
 
   &:active {
     opacity: 0.9;
+  }
+}
+
+.timeline {
+  position: relative;
+  padding-left: 40rpx;
+}
+
+.timelineItem {
+  position: relative;
+  padding-bottom: $spacing-lg;
+  padding-left: $spacing-md;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.timelineDot {
+  position: absolute;
+  left: -40rpx;
+  top: 8rpx;
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: $radius-round;
+  z-index: 2;
+
+  &.dust {
+    background-color: $color-info;
+    box-shadow: 0 0 8rpx rgba(59, 130, 246, 0.4);
+  }
+
+  &.light_protection {
+    background-color: $color-warning;
+    box-shadow: 0 0 8rpx rgba(245, 158, 11, 0.4);
+  }
+
+  &.other {
+    background-color: $color-primary-light;
+    box-shadow: 0 0 8rpx rgba(124, 58, 237, 0.4);
+  }
+
+  &.flaw {
+    background-color: $color-error;
+    box-shadow: 0 0 8rpx rgba(239, 68, 68, 0.4);
+  }
+
+  &.part {
+    background-color: $color-gold;
+    box-shadow: 0 0 8rpx rgba(245, 158, 11, 0.4);
+  }
+
+  &.arrival {
+    background-color: $color-success;
+    box-shadow: 0 0 8rpx rgba(16, 185, 129, 0.4);
+  }
+
+  &.unbox {
+    background-color: #A78BFA;
+    box-shadow: 0 0 8rpx rgba(167, 139, 250, 0.4);
+  }
+
+  &.purchase {
+    background-color: #64748B;
+    box-shadow: 0 0 8rpx rgba(100, 116, 139, 0.4);
+  }
+}
+
+.timelineLine {
+  position: absolute;
+  left: -31rpx;
+  top: 28rpx;
+  bottom: 0;
+  width: 2rpx;
+  background-color: $color-border;
+}
+
+.timelineItem:last-child .timelineLine {
+  display: none;
+}
+
+.timelineContent {
+  background-color: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.timelineHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-xs;
+}
+
+.timelineIcon {
+  font-size: $font-size-sm;
+}
+
+.timelineType {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  padding: 2rpx 8rpx;
+  border-radius: $radius-xs;
+
+  &.dust {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: $color-info;
+  }
+
+  &.light_protection {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: $color-warning;
+  }
+
+  &.other {
+    background-color: rgba(124, 58, 237, 0.15);
+    color: $color-primary-light;
+  }
+
+  &.flaw {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: $color-error;
+  }
+
+  &.part {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: $color-gold;
+  }
+
+  &.arrival {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: $color-success;
+  }
+
+  &.unbox {
+    background-color: rgba(167, 139, 250, 0.15);
+    color: #A78BFA;
+  }
+
+  &.purchase {
+    background-color: rgba(100, 116, 139, 0.15);
+    color: $color-text-tertiary;
+  }
+}
+
+.timelineDate {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-left: auto;
+}
+
+.timelineDesc {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  line-height: $line-height-normal;
+}
+
+.timelineStatus {
+  display: inline-block;
+  font-size: $font-size-xs;
+  margin-top: $spacing-xs;
+  padding: 2rpx 8rpx;
+  border-radius: $radius-xs;
+  font-weight: $font-weight-medium;
+
+  &.pending {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: $color-error;
+  }
+
+  &.resolved {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: $color-success;
+  }
+
+  &.received {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: $color-success;
   }
 }
 
@@ -349,10 +570,6 @@
 }
 
 .swiperIndicator {
-  position: absolute;
-  bottom: $spacing-md;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   gap: $spacing-xs;
   padding: $spacing-xs $spacing-md;

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, Button, Image, ScrollView } from '@tarojs/components';
+import { View, Text, Button, Image, ScrollView, Picker } from '@tarojs/components';
 import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import classnames from 'classnames';
 import styles from './index.module.scss';
@@ -9,11 +9,21 @@ import { CollectionItem } from '../../types/collection';
 import { getDaysUntil, formatPrice } from '../../utils';
 
 const PlanPage: React.FC = () => {
-  const { collections, markArrived, markBalancePaid } = useCollection();
+  const { allCollections, markArrived, markBalancePaid, getSeriesList } = useCollection();
   const [activeTab, setActiveTab] = useState<'pending' | 'arrived'>('pending');
+  const [filterSeries, setFilterSeries] = useState<number>(0);
+
+  const seriesList = useMemo(() => getSeriesList(), [getSeriesList]);
+  const seriesOptions = useMemo(() => ['全部', ...seriesList], [seriesList]);
+
+  const planCollections = useMemo(() => {
+    const seriesName = seriesOptions[filterSeries];
+    if (seriesName === '全部') return allCollections;
+    return allCollections.filter(item => item.seriesName === seriesName);
+  }, [allCollections, filterSeries, seriesOptions]);
 
   const pendingItems = useMemo(() => {
-    return collections
+    return planCollections
       .filter(item => !item.hasArrived)
       .sort((a, b) => {
         if (!a.balanceDueDate && !b.balanceDueDate) return 0;
@@ -21,10 +31,10 @@ const PlanPage: React.FC = () => {
         if (!b.balanceDueDate) return -1;
         return new Date(a.balanceDueDate).getTime() - new Date(b.balanceDueDate).getTime();
       });
-  }, [collections]);
+  }, [planCollections]);
 
   const arrivedItems = useMemo(() => {
-    return collections
+    return planCollections
       .filter(item => item.hasArrived)
       .sort((a, b) => {
         if (!a.arrivalDate && !b.arrivalDate) return 0;
@@ -32,7 +42,7 @@ const PlanPage: React.FC = () => {
         if (!b.arrivalDate) return -1;
         return new Date(b.arrivalDate).getTime() - new Date(a.arrivalDate).getTime();
       });
-  }, [collections]);
+  }, [planCollections]);
 
   const urgentPendingItems = useMemo(() => {
     return pendingItems.filter(item => {
@@ -75,7 +85,6 @@ const PlanPage: React.FC = () => {
   };
 
   usePullDownRefresh(() => {
-    console.log('[Plan] Pull down refresh');
     setTimeout(() => {
       Taro.stopPullDownRefresh();
     }, 1000);
@@ -98,6 +107,15 @@ const PlanPage: React.FC = () => {
           </Text>
           <Text className={styles.statLabel}>待支付</Text>
         </View>
+      </View>
+
+      <View className={styles.filterBar}>
+        <Picker mode="selector" range={seriesOptions} value={filterSeries} onChange={(e) => setFilterSeries(Number(e.detail.value))}>
+          <View className={styles.filterBtn}>
+            <Text>{seriesOptions[filterSeries]}</Text>
+            <Text className={styles.filterArrow}>▾</Text>
+          </View>
+        </Picker>
       </View>
 
       {urgentPendingItems.length > 0 && activeTab === 'pending' && (

@@ -13,6 +13,29 @@
   background: linear-gradient(180deg, rgba(245, 158, 11, 0.1) 0%, $color-bg-page 100%);
 }
 
+.filterBar {
+  display: flex;
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-sm;
+}
+
+.filterBtn {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background-color: $color-bg-card;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.filterArrow {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
 .statCard {
   flex: 1;
   background-color: $color-bg-card;

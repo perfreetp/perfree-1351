@@ -19,6 +19,13 @@ export interface CollectionItem {
   notes: string;
   createdAt: string;
   sortOrder: number;
+  cabinetPosition?: CabinetPosition;
+}
+
+export interface CabinetPosition {
+  cabinet: string;
+  shelf: number;
+  position: number;
 }
 
 export interface FlawRecord {
@@ -51,6 +58,16 @@ export interface MaintenanceReminder {
   type: 'dust' | 'light_protection';
   nextDate: string;
   intervalDays: number;
+}
+
+export interface TimelineEvent {
+  id: string;
+  collectionId: string;
+  collectionName: string;
+  date: string;
+  type: 'dust' | 'light_protection' | 'other' | 'flaw' | 'part' | 'arrival' | 'unbox' | 'purchase';
+  description: string;
+  status?: string;
 }
 
 export interface Statistics {

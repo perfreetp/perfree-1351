@@ -4,7 +4,7 @@ import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
 import styles from './index.module.scss';
 import { useCollection } from '../../store/CollectionContext';
-import { formatPrice, getMaintenanceTypeText, getFlawStatusText, getPartStatusText } from '../../utils';
+import { formatPrice, getMaintenanceTypeText, getFlawStatusText, getPartStatusText, getTimelineTypeText, getTimelineTypeIcon } from '../../utils';
 
 type AddModalType = 'maintenance' | 'flaw' | 'part' | null;
 
@@ -18,9 +18,12 @@ const DetailPage: React.FC = () => {
     addFlawRecord,
     addReplacementPart,
     updateFlawStatus,
-    updatePartStatus
+    updatePartStatus,
+    addPhotos,
+    removePhoto,
+    getTimeline
   } = useCollection();
-  const [activeTab, setActiveTab] = useState<'flaws' | 'parts' | 'maintenance'>('flaws');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'flaws' | 'parts' | 'maintenance'>('timeline');
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [showAddModal, setShowAddModal] = useState<AddModalType>(null);
 
@@ -42,6 +45,7 @@ const DetailPage: React.FC = () => {
 
   const id = router.params.id as string;
   const item = useMemo(() => getCollectionById(id), [id, getCollectionById]);
+  const timeline = useMemo(() => getTimeline(id), [id, getTimeline]);
 
   if (!item) {
     return (
@@ -79,16 +83,32 @@ const DetailPage: React.FC = () => {
     });
   };
 
-  const handleAddMaintenance = () => {
-    setShowAddModal('maintenance');
+  const handleChooseImage = async () => {
+    try {
+      const res = await Taro.chooseImage({
+        count: 9 - item.photos.length,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera']
+      });
+      await addPhotos(item.id, res.tempFilePaths);
+      Taro.showToast({ title: '照片已添加', icon: 'success' });
+    } catch (e) {
+      console.error('[Detail] Failed to choose image:', e);
+    }
   };
 
-  const handleAddFlaw = () => {
-    setShowAddModal('flaw');
-  };
-
-  const handleAddPart = () => {
-    setShowAddModal('part');
+  const handleDeletePhoto = (index: number) => {
+    Taro.showModal({
+      title: '删除照片',
+      content: '确定删除这张照片吗？',
+      confirmColor: '#EF4444',
+      success: (res) => {
+        if (res.confirm) {
+          removePhoto(item.id, index);
+          Taro.showToast({ title: '照片已删除', icon: 'success' });
+        }
+      }
+    });
   };
 
   const handleSaveMaintenance = () => {
@@ -107,7 +127,7 @@ const DetailPage: React.FC = () => {
       date: new Date().toISOString().split('T')[0],
       description: ''
     });
-    setActiveTab('maintenance');
+    setActiveTab('timeline');
     Taro.showToast({ title: '维护记录已添加', icon: 'success' });
   };
 
@@ -128,7 +148,7 @@ const DetailPage: React.FC = () => {
       date: new Date().toISOString().split('T')[0],
       status: 'pending'
     });
-    setActiveTab('flaws');
+    setActiveTab('timeline');
     Taro.showToast({ title: '瑕疵记录已添加', icon: 'success' });
   };
 
@@ -148,7 +168,7 @@ const DetailPage: React.FC = () => {
       applyDate: new Date().toISOString().split('T')[0],
       status: 'pending'
     });
-    setActiveTab('parts');
+    setActiveTab('timeline');
     Taro.showToast({ title: '补件记录已添加', icon: 'success' });
   };
 
@@ -186,16 +206,26 @@ const DetailPage: React.FC = () => {
                 className={styles.swiperImage}
                 onError={(e) => console.error('[Image] Failed to load:', e)}
               />
+              <View className={styles.photoDeleteBtn} onClick={() => handleDeletePhoto(index)}>
+                <Text>×</Text>
+              </View>
             </SwiperItem>
           ))}
         </Swiper>
-        <View className={styles.swiperIndicator}>
-          {item.photos.map((_, index) => (
-            <View
-              key={index}
-              className={classnames(styles.indicatorDot, currentPhotoIndex === index && styles.active)}
-            />
-          ))}
+        <View className={styles.photoActions}>
+          <View className={styles.swiperIndicator}>
+            {item.photos.map((_, index) => (
+              <View
+                key={index}
+                className={classnames(styles.indicatorDot, currentPhotoIndex === index && styles.active)}
+              />
+            ))}
+          </View>
+          {item.photos.length < 9 && (
+            <Button className={styles.addPhotoBtn} onClick={handleChooseImage}>
+              <Text>+ 添加照片</Text>
+            </Button>
+          )}
         </View>
       </View>
 
@@ -284,6 +314,12 @@ const DetailPage: React.FC = () => {
 
         <View className={styles.tabBar}>
           <Button
+            className={classnames(styles.tabBtn, activeTab === 'timeline' && styles.active)}
+            onClick={() => setActiveTab('timeline')}
+          >
+            <Text>时间轴</Text>
+          </Button>
+          <Button
             className={classnames(styles.tabBtn, activeTab === 'flaws' && styles.active)}
             onClick={() => setActiveTab('flaws')}
           >
@@ -304,11 +340,52 @@ const DetailPage: React.FC = () => {
         </View>
 
         <View className={styles.listSection}>
+          {activeTab === 'timeline' && (
+            <>
+              <View className={styles.sectionHeader}>
+                <Text className={styles.sectionTitle}>维护时间轴</Text>
+              </View>
+              {timeline.length > 0 ? (
+                <View className={styles.timeline}>
+                  {timeline.map(event => (
+                    <View key={event.id} className={styles.timelineItem}>
+                      <View className={classnames(styles.timelineDot, event.type)} />
+                      <View className={styles.timelineLine} />
+                      <View className={styles.timelineContent}>
+                        <View className={styles.timelineHeader}>
+                          <Text className={styles.timelineIcon}>{getTimelineTypeIcon(event.type)}</Text>
+                          <Text className={classnames(styles.timelineType, event.type)}>
+                            {getTimelineTypeText(event.type)}
+                          </Text>
+                          <Text className={styles.timelineDate}>{event.date}</Text>
+                        </View>
+                        <Text className={styles.timelineDesc}>{event.description}</Text>
+                        {event.status && (
+                          <Text className={classnames(styles.timelineStatus, event.status)}>
+                            {event.type === 'flaw'
+                              ? getFlawStatusText(event.status)
+                              : getPartStatusText(event.status)
+                            }
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View className={styles.emptyState}>
+                  <Text className={styles.emptyIcon}>📋</Text>
+                  <Text className={styles.emptyText}>暂无维护记录</Text>
+                </View>
+              )}
+            </>
+          )}
+
           {activeTab === 'flaws' && (
             <>
               <View className={styles.sectionHeader}>
                 <Text className={styles.sectionTitle}>瑕疵记录</Text>
-                <Button className={styles.addRecordBtn} onClick={handleAddFlaw}>
+                <Button className={styles.addRecordBtn} onClick={() => setShowAddModal('flaw')}>
                   <Text>+ 添加</Text>
                 </Button>
               </View>
@@ -333,7 +410,7 @@ const DetailPage: React.FC = () => {
                 <View className={styles.emptyState}>
                   <Text className={styles.emptyIcon}>✨</Text>
                   <Text className={styles.emptyText}>暂无瑕疵记录</Text>
-                  <Button className={styles.emptyAddBtn} onClick={handleAddFlaw}>
+                  <Button className={styles.emptyAddBtn} onClick={() => setShowAddModal('flaw')}>
                     <Text>添加瑕疵记录</Text>
                   </Button>
                 </View>
@@ -345,7 +422,7 @@ const DetailPage: React.FC = () => {
             <>
               <View className={styles.sectionHeader}>
                 <Text className={styles.sectionTitle}>补件记录</Text>
-                <Button className={styles.addRecordBtn} onClick={handleAddPart}>
+                <Button className={styles.addRecordBtn} onClick={() => setShowAddModal('part')}>
                   <Text>+ 添加</Text>
                 </Button>
               </View>
@@ -372,7 +449,7 @@ const DetailPage: React.FC = () => {
                 <View className={styles.emptyState}>
                   <Text className={styles.emptyIcon}>📦</Text>
                   <Text className={styles.emptyText}>暂无补件记录</Text>
-                  <Button className={styles.emptyAddBtn} onClick={handleAddPart}>
+                  <Button className={styles.emptyAddBtn} onClick={() => setShowAddModal('part')}>
                     <Text>添加补件记录</Text>
                   </Button>
                 </View>
@@ -384,7 +461,7 @@ const DetailPage: React.FC = () => {
             <>
               <View className={styles.sectionHeader}>
                 <Text className={styles.sectionTitle}>维护记录</Text>
-                <Button className={styles.addRecordBtn} onClick={handleAddMaintenance}>
+                <Button className={styles.addRecordBtn} onClick={() => setShowAddModal('maintenance')}>
                   <Text>+ 添加</Text>
                 </Button>
               </View>
@@ -406,7 +483,7 @@ const DetailPage: React.FC = () => {
                 <View className={styles.emptyState}>
                   <Text className={styles.emptyIcon}>📋</Text>
                   <Text className={styles.emptyText}>暂无维护记录</Text>
-                  <Button className={styles.emptyAddBtn} onClick={handleAddMaintenance}>
+                  <Button className={styles.emptyAddBtn} onClick={() => setShowAddModal('maintenance')}>
                     <Text>添加维护记录</Text>
                   </Button>
                 </View>
@@ -425,7 +502,7 @@ const DetailPage: React.FC = () => {
         </Button>
         <Button
           className={classnames(styles.actionBtn, styles.secondary)}
-          onClick={handleAddMaintenance}
+          onClick={() => setShowAddModal('maintenance')}
         >
           <Text>添加维护</Text>
         </Button>

@@ -11,12 +11,12 @@ import { CollectionItem } from '../../types/collection';
 const ShowcasePage: React.FC = () => {
   const {
     collections,
-    selectedSeries,
-    setSelectedSeries,
+    allCollections,
+    showcaseSeries,
+    setShowcaseSeries,
     getSeriesList,
     sortType,
     setSortType,
-    getCollectionsBySeries
   } = useCollection();
 
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -39,8 +39,8 @@ const ShowcasePage: React.FC = () => {
   }, [collections, searchKeyword]);
 
   const getSeriesCount = useCallback((series: string) => {
-    return getCollectionsBySeries(series).length;
-  }, [getCollectionsBySeries]);
+    return allCollections.filter(item => item.seriesName === series).length;
+  }, [allCollections]);
 
   const handleAdd = () => {
     Taro.navigateTo({ url: '/pages/add/index' });
@@ -51,8 +51,8 @@ const ShowcasePage: React.FC = () => {
   };
 
   const handleShareSeries = () => {
-    if (selectedSeries) {
-      Taro.navigateTo({ url: `/pages/share/index?series=${encodeURIComponent(selectedSeries)}` });
+    if (showcaseSeries) {
+      Taro.navigateTo({ url: `/pages/share/index?series=${encodeURIComponent(showcaseSeries)}` });
     } else {
       Taro.showToast({ title: '请先选择一个系列', icon: 'none' });
     }
@@ -73,7 +73,6 @@ const ShowcasePage: React.FC = () => {
   ];
 
   usePullDownRefresh(() => {
-    console.log('[Showcase] Pull down refresh');
     setTimeout(() => {
       Taro.stopPullDownRefresh();
     }, 1000);
@@ -128,9 +127,9 @@ const ShowcasePage: React.FC = () => {
           <View className={styles.seriesTag}>
             <SeriesTag
               name="全部"
-              count={collections.length}
-              active={selectedSeries === null}
-              onClick={() => setSelectedSeries(null)}
+              count={allCollections.length}
+              active={showcaseSeries === null}
+              onClick={() => setShowcaseSeries(null)}
             />
           </View>
           {seriesList.map(series => (
@@ -138,12 +137,12 @@ const ShowcasePage: React.FC = () => {
               <SeriesTag
                 name={series}
                 count={getSeriesCount(series)}
-                active={selectedSeries === series}
-                onClick={() => setSelectedSeries(series)}
+                active={showcaseSeries === series}
+                onClick={() => setShowcaseSeries(series)}
               />
             </View>
           ))}
-          {selectedSeries && (
+          {showcaseSeries && (
             <View className={styles.seriesTag}>
               <Button
                 className={styles.sortBtn}

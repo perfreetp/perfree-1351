@@ -231,3 +231,128 @@
   color: $color-text-tertiary;
   font-size: $font-size-sm;
 }
+
+.filterBar {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.filterBtn {
+  @include button-reset;
+  padding: $spacing-xs $spacing-md;
+  background-color: $color-bg-card;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.timeline {
+  position: relative;
+  padding-left: 40rpx;
+  margin-bottom: $spacing-lg;
+}
+
+.timelineItem {
+  position: relative;
+  padding-bottom: $spacing-lg;
+  padding-left: $spacing-md;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.timelineDot {
+  position: absolute;
+  left: -40rpx;
+  top: 8rpx;
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: $radius-round;
+  z-index: 2;
+
+  &.dust { background-color: $color-info; box-shadow: 0 0 8rpx rgba(59, 130, 246, 0.4); }
+  &.light_protection { background-color: $color-warning; box-shadow: 0 0 8rpx rgba(245, 158, 11, 0.4); }
+  &.other { background-color: $color-primary-light; box-shadow: 0 0 8rpx rgba(124, 58, 237, 0.4); }
+  &.flaw { background-color: $color-error; box-shadow: 0 0 8rpx rgba(239, 68, 68, 0.4); }
+  &.part { background-color: $color-gold; box-shadow: 0 0 8rpx rgba(245, 158, 11, 0.4); }
+  &.arrival { background-color: $color-success; box-shadow: 0 0 8rpx rgba(16, 185, 129, 0.4); }
+  &.unbox { background-color: #A78BFA; box-shadow: 0 0 8rpx rgba(167, 139, 250, 0.4); }
+  &.purchase { background-color: #64748B; box-shadow: 0 0 8rpx rgba(100, 116, 139, 0.4); }
+}
+
+.timelineLine {
+  position: absolute;
+  left: -31rpx;
+  top: 28rpx;
+  bottom: 0;
+  width: 2rpx;
+  background-color: $color-border;
+}
+
+.timelineItem:last-child .timelineLine {
+  display: none;
+}
+
+.timelineContent {
+  background-color: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.timelineHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.timelineIcon {
+  font-size: $font-size-sm;
+}
+
+.timelineName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  max-width: 200rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timelineType {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  padding: 2rpx 8rpx;
+  border-radius: $radius-xs;
+
+  &.dust { background-color: rgba(59, 130, 246, 0.15); color: $color-info; }
+  &.light_protection { background-color: rgba(245, 158, 11, 0.15); color: $color-warning; }
+  &.other { background-color: rgba(124, 58, 237, 0.15); color: $color-primary-light; }
+  &.flaw { background-color: rgba(239, 68, 68, 0.15); color: $color-error; }
+  &.part { background-color: rgba(245, 158, 11, 0.15); color: $color-gold; }
+  &.arrival { background-color: rgba(16, 185, 129, 0.15); color: $color-success; }
+  &.unbox { background-color: rgba(167, 139, 250, 0.15); color: #A78BFA; }
+  &.purchase { background-color: rgba(100, 116, 139, 0.15); color: $color-text-tertiary; }
+}
+
+.timelineDate {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-left: auto;
+}
+
+.timelineDesc {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: $line-height-normal;
+}

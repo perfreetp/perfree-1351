@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import Taro from '@tarojs/taro';
-import { CollectionItem, MaintenanceReminder, FlawRecord, ReplacementPart, MaintenanceRecord } from '../types/collection';
+import { CollectionItem, MaintenanceReminder, FlawRecord, ReplacementPart, MaintenanceRecord, CabinetPosition, TimelineEvent } from '../types/collection';
 import { mockCollections, mockReminders } from '../data/mockData';
 
 const STORAGE_KEY_COLLECTIONS = 'figure_collections';
 const STORAGE_KEY_REMINDERS = 'figure_reminders';
-const STORAGE_KEY_CABINET_ORDER = 'figure_cabinet_order';
+const STORAGE_KEY_CABINET_LAYOUT = 'figure_cabinet_layout';
 
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
@@ -27,11 +27,36 @@ function saveToStorage<T>(key: string, data: T): void {
   }
 }
 
+async function persistPhoto(tempPath: string): Promise<string> {
+  if (!tempPath.startsWith('http') && !tempPath.startsWith('wxfile://') && !tempPath.startsWith('/')) {
+    return tempPath;
+  }
+  if (tempPath.startsWith('http')) {
+    return tempPath;
+  }
+  try {
+    const res = await Taro.saveFile({
+      tempFilePath: tempPath
+    });
+    return res.savedFilePath;
+  } catch (e) {
+    console.error('[Photo] Failed to persist:', tempPath, e);
+    return tempPath;
+  }
+}
+
+interface CabinetLayout {
+  [cabinetName: string]: {
+    [shelfNum: number]: string[];
+  };
+}
+
 interface CollectionContextType {
+  allCollections: CollectionItem[];
   collections: CollectionItem[];
   reminders: MaintenanceReminder[];
-  selectedSeries: string | null;
-  setSelectedSeries: (series: string | null) => void;
+  showcaseSeries: string | null;
+  setShowcaseSeries: (series: string | null) => void;
   getCollectionById: (id: string) => CollectionItem | undefined;
   getCollectionsBySeries: (series: string) => CollectionItem[];
   addCollection: (item: Omit<CollectionItem, 'id' | 'createdAt' | 'sortOrder'>) => void;
@@ -46,56 +71,59 @@ interface CollectionContextType {
   getSeriesList: () => string[];
   sortType: 'default' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | 'showcase';
   setSortType: (type: 'default' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | 'showcase') => void;
-  cabinetOrder: string[];
-  setCabinetOrder: (order: string[]) => void;
+  cabinetLayout: CabinetLayout;
+  setCabinetLayout: (layout: CabinetLayout) => void;
   markArrived: (id: string) => void;
   markBalancePaid: (id: string) => void;
+  addPhotos: (collectionId: string, tempPaths: string[]) => Promise<void>;
+  removePhoto: (collectionId: string, photoIndex: number) => void;
+  getTimeline: (collectionId?: string) => TimelineEvent[];
 }
 
 const CollectionContext = createContext<CollectionContextType | undefined>(undefined);
 
 export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [collections, setCollections] = useState<CollectionItem[]>(() =>
+  const [allCollections, setAllCollections] = useState<CollectionItem[]>(() =>
     loadFromStorage(STORAGE_KEY_COLLECTIONS, mockCollections)
   );
   const [reminders, setReminders] = useState<MaintenanceReminder[]>(() =>
     loadFromStorage(STORAGE_KEY_REMINDERS, mockReminders)
   );
-  const [selectedSeries, setSelectedSeries] = useState<string | null>(null);
+  const [showcaseSeries, setShowcaseSeries] = useState<string | null>(null);
   const [sortType, setSortType] = useState<'default' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | 'showcase'>('default');
-  const [cabinetOrder, setCabinetOrderState] = useState<string[]>(() =>
-    loadFromStorage(STORAGE_KEY_CABINET_ORDER, [])
+  const [cabinetLayout, setCabinetLayoutState] = useState<CabinetLayout>(() =>
+    loadFromStorage(STORAGE_KEY_CABINET_LAYOUT, {})
   );
 
   useEffect(() => {
-    saveToStorage(STORAGE_KEY_COLLECTIONS, collections);
-  }, [collections]);
+    saveToStorage(STORAGE_KEY_COLLECTIONS, allCollections);
+  }, [allCollections]);
 
   useEffect(() => {
     saveToStorage(STORAGE_KEY_REMINDERS, reminders);
   }, [reminders]);
 
-  const setCabinetOrder = useCallback((order: string[]) => {
-    setCabinetOrderState(order);
-    saveToStorage(STORAGE_KEY_CABINET_ORDER, order);
+  const setCabinetLayout = useCallback((layout: CabinetLayout) => {
+    setCabinetLayoutState(layout);
+    saveToStorage(STORAGE_KEY_CABINET_LAYOUT, layout);
   }, []);
 
   const getCollectionById = useCallback((id: string) => {
-    return collections.find(item => item.id === id);
-  }, [collections]);
+    return allCollections.find(item => item.id === id);
+  }, [allCollections]);
 
   const getCollectionsBySeries = useCallback((series: string) => {
-    return collections.filter(item => item.seriesName === series);
-  }, [collections]);
+    return allCollections.filter(item => item.seriesName === series);
+  }, [allCollections]);
 
   const addCollection = useCallback((item: Omit<CollectionItem, 'id' | 'createdAt' | 'sortOrder'>) => {
     const newItem: CollectionItem = {
       ...item,
       id: Date.now().toString(),
       createdAt: new Date().toISOString().split('T')[0],
-      sortOrder: collections.length + 1
+      sortOrder: allCollections.length + 1
     };
-    setCollections(prev => [...prev, newItem]);
+    setAllCollections(prev => [...prev, newItem]);
 
     if (newItem.hasArrived && newItem.isUnboxed) {
       const newReminder: MaintenanceReminder = {
@@ -110,19 +138,27 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     console.log('[Collection] Added new collection:', newItem);
-  }, [collections.length]);
+  }, [allCollections.length]);
 
   const updateCollection = useCallback((id: string, updates: Partial<CollectionItem>) => {
-    setCollections(prev => prev.map(item =>
+    setAllCollections(prev => prev.map(item =>
       item.id === id ? { ...item, ...updates } : item
     ));
     console.log('[Collection] Updated collection:', id, updates);
   }, []);
 
   const deleteCollection = useCallback((id: string) => {
-    setCollections(prev => prev.filter(item => item.id !== id));
+    setAllCollections(prev => prev.filter(item => item.id !== id));
     setReminders(prev => prev.filter(r => r.collectionId !== id));
-    setCabinetOrderState(prev => prev.filter(itemId => itemId !== id));
+    setCabinetLayoutState(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(cabinet => {
+        Object.keys(next[cabinet]).forEach(shelf => {
+          next[cabinet][Number(shelf)] = next[cabinet][Number(shelf)].filter(itemId => itemId !== id);
+        });
+      });
+      return next;
+    });
     console.log('[Collection] Deleted collection:', id);
   }, []);
 
@@ -145,7 +181,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         date: new Date().toISOString().split('T')[0],
         description: completedReminder.type === 'dust' ? '定期除尘保养' : '检查避光措施'
       };
-      setCollections(prev => prev.map(item => {
+      setAllCollections(prev => prev.map(item => {
         if (item.id === completedReminder!.collectionId) {
           return { ...item, maintenanceRecords: [...item.maintenanceRecords, record] };
         }
@@ -160,7 +196,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ...record,
       id: `mr_${Date.now()}`
     };
-    setCollections(prev => prev.map(item => {
+    setAllCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         return { ...item, maintenanceRecords: [...item.maintenanceRecords, newRecord] };
       }
@@ -174,7 +210,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ...record,
       id: `flaw_${Date.now()}`
     };
-    setCollections(prev => prev.map(item => {
+    setAllCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         return { ...item, flaws: [...item.flaws, newRecord] };
       }
@@ -188,7 +224,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ...record,
       id: `part_${Date.now()}`
     };
-    setCollections(prev => prev.map(item => {
+    setAllCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         return { ...item, replacementParts: [...item.replacementParts, newRecord] };
       }
@@ -198,7 +234,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const updateFlawStatus = useCallback((collectionId: string, flawId: string, status: 'pending' | 'resolved') => {
-    setCollections(prev => prev.map(item => {
+    setAllCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         return {
           ...item,
@@ -210,7 +246,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const updatePartStatus = useCallback((collectionId: string, partId: string, status: 'pending' | 'received') => {
-    setCollections(prev => prev.map(item => {
+    setAllCollections(prev => prev.map(item => {
       if (item.id === collectionId) {
         return {
           ...item,
@@ -224,7 +260,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const markArrived = useCallback((id: string) => {
-    setCollections(prev => prev.map(item => {
+    setAllCollections(prev => prev.map(item => {
       if (item.id === id) {
         return {
           ...item,
@@ -240,7 +276,7 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const markBalancePaid = useCallback((id: string) => {
-    setCollections(prev => prev.map(item => {
+    setAllCollections(prev => prev.map(item => {
       if (item.id === id) {
         return { ...item, balanceDueDate: undefined };
       }
@@ -249,15 +285,120 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     console.log('[Collection] Marked balance paid:', id);
   }, []);
 
-  const getSeriesList = useCallback(() => {
-    const seriesSet = new Set(collections.map(item => item.seriesName));
-    return Array.from(seriesSet);
-  }, [collections]);
+  const addPhotos = useCallback(async (collectionId: string, tempPaths: string[]) => {
+    const savedPaths: string[] = [];
+    for (const path of tempPaths) {
+      const saved = await persistPhoto(path);
+      savedPaths.push(saved);
+    }
+    setAllCollections(prev => prev.map(item => {
+      if (item.id === collectionId) {
+        const newPhotos = [...item.photos, ...savedPaths].slice(0, 9);
+        return { ...item, photos: newPhotos };
+      }
+      return item;
+    }));
+    console.log('[Collection] Added photos:', collectionId, savedPaths);
+  }, []);
 
-  const sortedCollections = useMemo(() => {
-    let result = [...collections];
-    if (selectedSeries) {
-      result = result.filter(item => item.seriesName === selectedSeries);
+  const removePhoto = useCallback((collectionId: string, photoIndex: number) => {
+    setAllCollections(prev => prev.map(item => {
+      if (item.id === collectionId) {
+        const newPhotos = item.photos.filter((_, i) => i !== photoIndex);
+        return { ...item, photos: newPhotos };
+      }
+      return item;
+    }));
+    console.log('[Collection] Removed photo:', collectionId, photoIndex);
+  }, []);
+
+  const getSeriesList = useCallback(() => {
+    const seriesSet = new Set(allCollections.map(item => item.seriesName));
+    return Array.from(seriesSet);
+  }, [allCollections]);
+
+  const getTimeline = useCallback((collectionId?: string): TimelineEvent[] => {
+    const items = collectionId
+      ? allCollections.filter(item => item.id === collectionId)
+      : allCollections;
+
+    const events: TimelineEvent[] = [];
+
+    items.forEach(item => {
+      events.push({
+        id: `purchase_${item.id}`,
+        collectionId: item.id,
+        collectionName: item.characterName,
+        date: item.purchaseDate,
+        type: 'purchase',
+        description: `购入 ${item.characterName}`
+      });
+
+      if (item.hasArrived && item.arrivalDate) {
+        events.push({
+          id: `arrival_${item.id}`,
+          collectionId: item.id,
+          collectionName: item.characterName,
+          date: item.arrivalDate,
+          type: 'arrival',
+          description: '到货签收'
+        });
+      }
+
+      if (item.isUnboxed && item.arrivalDate) {
+        events.push({
+          id: `unbox_${item.id}`,
+          collectionId: item.id,
+          collectionName: item.characterName,
+          date: item.arrivalDate,
+          type: 'unbox',
+          description: '拆封展示'
+        });
+      }
+
+      item.maintenanceRecords.forEach(record => {
+        events.push({
+          id: record.id,
+          collectionId: item.id,
+          collectionName: item.characterName,
+          date: record.date,
+          type: record.type,
+          description: record.description
+        });
+      });
+
+      item.flaws.forEach(flaw => {
+        events.push({
+          id: flaw.id,
+          collectionId: item.id,
+          collectionName: item.characterName,
+          date: flaw.date,
+          type: 'flaw',
+          description: flaw.description,
+          status: flaw.status
+        });
+      });
+
+      item.replacementParts.forEach(part => {
+        events.push({
+          id: part.id,
+          collectionId: item.id,
+          collectionName: item.characterName,
+          date: part.applyDate,
+          type: 'part',
+          description: part.description,
+          status: part.status
+        });
+      });
+    });
+
+    return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [allCollections]);
+
+  const showcaseSortedCollections = useMemo(() => {
+    let result = [...allCollections];
+    if (showcaseSeries) {
+      result = result.filter(item => item.seriesName === showcaseSeries);
     }
     switch (sortType) {
       case 'price_asc':
@@ -272,11 +413,17 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       case 'date_desc':
         result.sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
         break;
-      case 'showcase':
-        if (cabinetOrder.length > 0) {
+      case 'showcase': {
+        const allIds: string[] = [];
+        Object.values(cabinetLayout).forEach(cabinet => {
+          Object.keys(cabinet).forEach(shelf => {
+            allIds.push(...cabinet[Number(shelf)]);
+          });
+        });
+        if (allIds.length > 0) {
           result.sort((a, b) => {
-            const aIndex = cabinetOrder.indexOf(a.id);
-            const bIndex = cabinetOrder.indexOf(b.id);
+            const aIndex = allIds.indexOf(a.id);
+            const bIndex = allIds.indexOf(b.id);
             if (aIndex === -1 && bIndex === -1) return a.sortOrder - b.sortOrder;
             if (aIndex === -1) return 1;
             if (bIndex === -1) return -1;
@@ -286,18 +433,20 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           result.sort((a, b) => a.sortOrder - b.sortOrder);
         }
         break;
+      }
       default:
         result.sort((a, b) => a.sortOrder - b.sortOrder);
     }
     return result;
-  }, [collections, selectedSeries, sortType, cabinetOrder]);
+  }, [allCollections, showcaseSeries, sortType, cabinetLayout]);
 
   return (
     <CollectionContext.Provider value={{
-      collections: sortedCollections,
+      allCollections,
+      collections: showcaseSortedCollections,
       reminders,
-      selectedSeries,
-      setSelectedSeries,
+      showcaseSeries,
+      setShowcaseSeries,
       getCollectionById,
       getCollectionsBySeries,
       addCollection,
@@ -312,10 +461,13 @@ export const CollectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       getSeriesList,
       sortType,
       setSortType,
-      cabinetOrder,
-      setCabinetOrder,
+      cabinetLayout,
+      setCabinetLayout,
       markArrived,
-      markBalancePaid
+      markBalancePaid,
+      addPhotos,
+      removePhoto,
+      getTimeline
     }}>
       {children}
     </CollectionContext.Provider>

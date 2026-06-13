@@ -6,7 +6,8 @@ export default defineAppConfig({
     'pages/stats/index',
     'pages/detail/index',
     'pages/add/index',
-    'pages/share/index'
+    'pages/share/index',
+    'pages/cabinet/index'
   ],
   window: {
     backgroundTextStyle: 'light',

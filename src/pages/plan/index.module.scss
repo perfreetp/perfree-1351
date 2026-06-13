@@ -154,3 +154,31 @@
 .arrivedImageWrapper {
   position: relative;
 }
+
+.urgentBanner {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin: 0 $page-padding;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 2rpx solid rgba(239, 68, 68, 0.2);
+  border-radius: $radius-md;
+}
+
+.urgentIcon {
+  font-size: $font-size-lg;
+  flex-shrink: 0;
+}
+
+.urgentText {
+  font-size: $font-size-sm;
+  color: $color-error;
+  font-weight: $font-weight-medium;
+}
+
+.arrivedLocation {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+}

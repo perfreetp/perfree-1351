@@ -1,0 +1,289 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+}
+
+.toolbar {
+  display: flex;
+  gap: $spacing-sm;
+  padding: $spacing-md $page-padding;
+  background-color: $color-bg-card;
+  border-bottom: 2rpx solid $color-border;
+}
+
+.toolBtn {
+  @include button-reset;
+  padding: $spacing-sm $spacing-md;
+  background-color: $color-bg-page;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  &.active {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: $color-error;
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  &.saveBtn {
+    background: linear-gradient(135deg, $color-gold 0%, $color-gold-light 100%);
+    color: $color-text-white;
+    border: none;
+    margin-left: auto;
+  }
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.cabinetScroll {
+  height: calc(100vh - 100rpx);
+}
+
+.cabinet {
+  margin: $spacing-lg $page-padding;
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: $radius-xl;
+  border: 4rpx solid rgba(124, 58, 237, 0.3);
+  overflow: hidden;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.3), inset 0 2rpx 8rpx rgba(124, 58, 237, 0.1);
+}
+
+.cabinetTop {
+  height: 16rpx;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.4), rgba(167, 139, 250, 0.6), rgba(124, 58, 237, 0.4));
+}
+
+.shelf {
+  position: relative;
+  padding: $spacing-lg $spacing-md $spacing-md;
+}
+
+.shelfLabel {
+  margin-bottom: $spacing-sm;
+  padding-left: $spacing-sm;
+}
+
+.shelfLabel Text {
+  font-size: $font-size-xs;
+  color: rgba(167, 139, 250, 0.6);
+  font-weight: $font-weight-medium;
+}
+
+.shelfItems {
+  display: flex;
+  gap: $spacing-md;
+  min-height: 280rpx;
+  align-items: flex-end;
+}
+
+.shelfItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.itemImageWrapper {
+  width: 180rpx;
+  height: 200rpx;
+  border-radius: $radius-md;
+  overflow: hidden;
+  background-color: rgba(30, 41, 59, 0.8);
+  border: 2rpx solid rgba(124, 58, 237, 0.2);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.3);
+}
+
+.itemImage {
+  width: 100%;
+  height: 100%;
+}
+
+.itemName {
+  font-size: $font-size-xs;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+  @include text-ellipsis;
+  max-width: 180rpx;
+  text-align: center;
+}
+
+.itemInfo {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+  @include text-ellipsis;
+  max-width: 180rpx;
+  text-align: center;
+}
+
+.shelfItemEmpty {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.emptySlot {
+  width: 180rpx;
+  height: 200rpx;
+  border-radius: $radius-md;
+  border: 2rpx dashed rgba(100, 116, 139, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(15, 23, 42, 0.3);
+}
+
+.emptySlotText {
+  font-size: $font-size-xs;
+  color: rgba(100, 116, 139, 0.5);
+}
+
+.shelfBoard {
+  height: 8rpx;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.3), rgba(167, 139, 250, 0.5), rgba(124, 58, 237, 0.3));
+  margin-top: $spacing-sm;
+  border-radius: 4rpx;
+  box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.2);
+}
+
+.cabinetBottom {
+  height: 16rpx;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.4), rgba(167, 139, 250, 0.6), rgba(124, 58, 237, 0.4));
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl * 3;
+}
+
+.emptyIcon {
+  font-size: 120rpx;
+  margin-bottom: $spacing-md;
+  opacity: 0.3;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.editScroll {
+  height: calc(100vh - 100rpx);
+}
+
+.editList {
+  padding: $spacing-md $page-padding;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.editItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+  border: 2rpx solid $color-border;
+}
+
+.editOrder {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: $radius-round;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.orderNum {
+  font-size: $font-size-sm;
+  color: $color-text-white;
+  font-weight: $font-weight-bold;
+}
+
+.editItemImageWrapper {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: $radius-md;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: $color-bg-page;
+}
+
+.editItemImage {
+  width: 100%;
+  height: 100%;
+}
+
+.editItemInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  min-width: 0;
+}
+
+.editItemName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.editItemSeries {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  @include text-ellipsis;
+}
+
+.editItemMeta {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  @include text-ellipsis;
+}
+
+.editControls {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.controlBtn {
+  @include button-reset;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-md;
+  background-color: $color-bg-page;
+  border: 2rpx solid $color-border;
+  font-size: $font-size-lg;
+  color: $color-text-primary;
+  transition: all $transition-base;
+
+  &.disabled {
+    opacity: 0.3;
+  }
+
+  &:active:not(.disabled) {
+    background-color: $color-bg-hover;
+  }
+}

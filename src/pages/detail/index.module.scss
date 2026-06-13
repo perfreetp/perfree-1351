@@ -110,6 +110,10 @@
   color: $color-price;
 }
 
+.warning {
+  color: $color-warning;
+}
+
 .notes {
   margin-top: $spacing-lg;
   padding-top: $spacing-lg;
@@ -157,6 +161,33 @@
 
 .listSection {
   padding: $spacing-lg $page-padding;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.addRecordBtn {
+  @include button-reset;
+  padding: $spacing-xs $spacing-md;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+
+  &:active {
+    opacity: 0.9;
+  }
 }
 
 .list {
@@ -253,6 +284,22 @@
 .emptyText {
   font-size: $font-size-md;
   color: $color-text-tertiary;
+  margin-bottom: $spacing-md;
+}
+
+.emptyAddBtn {
+  @include button-reset;
+  padding: $spacing-sm $spacing-lg;
+  background-color: $color-bg-hover;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-primary-light;
+  font-weight: $font-weight-medium;
+
+  &:active {
+    opacity: 0.9;
+  }
 }
 
 .actionBar {
@@ -329,4 +376,133 @@
   position: relative;
   width: 100%;
   height: 600rpx;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+}
+
+.modalContent {
+  width: 100%;
+  background-color: $color-bg-card;
+  border-radius: $radius-xl $radius-xl 0 0;
+  padding: $spacing-lg $page-padding;
+  padding-bottom: calc($spacing-lg + env(safe-area-inset-bottom));
+}
+
+.modalTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  text-align: center;
+  margin-bottom: $spacing-lg;
+}
+
+.typeSelector {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+}
+
+.typeOption {
+  @include button-reset;
+  flex: 1;
+  padding: $spacing-sm $spacing-md;
+  background-color: $color-bg-page;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+
+  &.typeActive {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+    color: $color-text-white;
+    border-color: $color-primary;
+  }
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.modalField {
+  margin-bottom: $spacing-md;
+}
+
+.modalLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+  font-weight: $font-weight-medium;
+}
+
+.modalInput {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 $spacing-md;
+  background-color: $color-bg-page;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+}
+
+.modalTextarea {
+  width: 100%;
+  min-height: 160rpx;
+  padding: $spacing-md;
+  background-color: $color-bg-page;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+  line-height: $line-height-normal;
+}
+
+.modalActions {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
+}
+
+.modalCancelBtn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-md;
+  background-color: $color-bg-hover;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.modalConfirmBtn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-md;
+  background: linear-gradient(135deg, $color-gold 0%, $color-gold-light 100%);
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
 }

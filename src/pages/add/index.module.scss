@@ -50,6 +50,8 @@
   font-size: $font-size-md;
   color: $color-text-primary;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
 
   &:focus {
     border-color: $color-primary;
@@ -141,6 +143,57 @@
 .switchLabel {
   font-size: $font-size-md;
   color: $color-text-primary;
+}
+
+.preOrderSection {
+  padding: $spacing-md;
+  background-color: rgba(245, 158, 11, 0.05);
+  border-radius: $radius-md;
+  border: 2rpx solid rgba(245, 158, 11, 0.2);
+  margin-bottom: $spacing-md;
+}
+
+.preOrderBadge {
+  display: inline-flex;
+  padding: 4rpx 16rpx;
+  background: linear-gradient(135deg, $color-gold 0%, $color-gold-light 100%);
+  border-radius: $radius-button;
+  margin-bottom: $spacing-md;
+}
+
+.preOrderBadgeText {
+  font-size: $font-size-xs;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+}
+
+.pickerText {
+  flex: 1;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.pickerArrow {
+  font-size: $font-size-lg;
+  color: $color-text-tertiary;
+  margin-left: $spacing-sm;
+}
+
+.importantInput {
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+.balanceTip {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba(245, 158, 11, 0.08);
+  border-radius: $radius-sm;
+}
+
+.balanceTipText {
+  font-size: $font-size-xs;
+  color: $color-warning;
+  line-height: $line-height-normal;
 }
 
 .actionBar {

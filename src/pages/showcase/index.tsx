@@ -9,10 +9,10 @@ import SeriesTag from '../../components/SeriesTag';
 import { CollectionItem } from '../../types/collection';
 
 const ShowcasePage: React.FC = () => {
-  const { 
-    collections, 
-    selectedSeries, 
-    setSelectedSeries, 
+  const {
+    collections,
+    selectedSeries,
+    setSelectedSeries,
     getSeriesList,
     sortType,
     setSortType,
@@ -29,7 +29,7 @@ const ShowcasePage: React.FC = () => {
     let result = collections;
     if (searchKeyword.trim()) {
       const keyword = searchKeyword.toLowerCase();
-      result = result.filter(item => 
+      result = result.filter(item =>
         item.characterName.toLowerCase().includes(keyword) ||
         item.seriesName.toLowerCase().includes(keyword) ||
         item.manufacturer.toLowerCase().includes(keyword)
@@ -44,6 +44,10 @@ const ShowcasePage: React.FC = () => {
 
   const handleAdd = () => {
     Taro.navigateTo({ url: '/pages/add/index' });
+  };
+
+  const handleOpenCabinet = () => {
+    Taro.navigateTo({ url: '/pages/cabinet/index' });
   };
 
   const handleShareSeries = () => {
@@ -61,6 +65,7 @@ const ShowcasePage: React.FC = () => {
 
   const sortOptions = [
     { value: 'default', label: '自定义排序' },
+    { value: 'showcase', label: '展柜排序' },
     { value: 'price_asc', label: '价格从低到高' },
     { value: 'price_desc', label: '价格从高到低' },
     { value: 'date_asc', label: '购买日期从早到晚' },
@@ -89,21 +94,21 @@ const ShowcasePage: React.FC = () => {
         </View>
 
         <View className={styles.actionRow}>
-          <Button 
-            className={styles.sortBtn} 
+          <Button
+            className={styles.sortBtn}
             onClick={() => setShowSortDropdown(true)}
           >
             <Text>排序：{sortOptions.find(o => o.value === sortType)?.label}</Text>
           </Button>
 
           <View className={styles.viewToggle}>
-            <Button 
+            <Button
               className={classnames(styles.viewBtn, viewMode === 'grid' && styles.active)}
               onClick={() => setViewMode('grid')}
             >
               <Text>网格</Text>
             </Button>
-            <Button 
+            <Button
               className={classnames(styles.viewBtn, viewMode === 'list' && styles.active)}
               onClick={() => setViewMode('list')}
             >
@@ -114,14 +119,14 @@ const ShowcasePage: React.FC = () => {
       </View>
 
       <View className={styles.seriesSection}>
-        <ScrollView 
-          className={styles.seriesScroll} 
-          scrollX 
+        <ScrollView
+          className={styles.seriesScroll}
+          scrollX
           enhanced
           showScrollbar={false}
         >
           <View className={styles.seriesTag}>
-            <SeriesTag 
+            <SeriesTag
               name="全部"
               count={collections.length}
               active={selectedSeries === null}
@@ -130,7 +135,7 @@ const ShowcasePage: React.FC = () => {
           </View>
           {seriesList.map(series => (
             <View key={series} className={styles.seriesTag}>
-              <SeriesTag 
+              <SeriesTag
                 name={series}
                 count={getSeriesCount(series)}
                 active={selectedSeries === series}
@@ -140,7 +145,7 @@ const ShowcasePage: React.FC = () => {
           ))}
           {selectedSeries && (
             <View className={styles.seriesTag}>
-              <Button 
+              <Button
                 className={styles.sortBtn}
                 onClick={handleShareSeries}
               >
@@ -151,13 +156,22 @@ const ShowcasePage: React.FC = () => {
         </ScrollView>
       </View>
 
+      <View className={styles.cabinetEntry} onClick={handleOpenCabinet}>
+        <Text className={styles.cabinetIcon}>🏛️</Text>
+        <View className={styles.cabinetEntryInfo}>
+          <Text className={styles.cabinetEntryTitle}>虚拟展柜</Text>
+          <Text className={styles.cabinetEntryDesc}>按展柜层位排布查看藏品</Text>
+        </View>
+        <Text className={styles.cabinetArrow}>›</Text>
+      </View>
+
       <View className={styles.collectionList}>
         {filteredCollections.length > 0 ? (
           <View className={viewMode === 'grid' ? styles.gridLayout : styles.listLayout}>
             {filteredCollections.map((item: CollectionItem) => (
-              <CollectionCard 
-                key={item.id} 
-                item={item} 
+              <CollectionCard
+                key={item.id}
+                item={item}
                 mode={viewMode}
               />
             ))}
@@ -189,7 +203,7 @@ const ShowcasePage: React.FC = () => {
                 <Text>{option.label}</Text>
               </Button>
             ))}
-            <Button 
+            <Button
               className={styles.sortCancel}
               onClick={() => setShowSortDropdown(false)}
             >

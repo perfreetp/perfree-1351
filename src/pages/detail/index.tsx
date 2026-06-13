@@ -1,16 +1,44 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, Image, Button, Swiper, SwiperItem, ScrollView } from '@tarojs/components';
+import { View, Text, Image, Button, Swiper, SwiperItem, ScrollView, Input, Textarea } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
 import styles from './index.module.scss';
 import { useCollection } from '../../store/CollectionContext';
 import { formatPrice, getMaintenanceTypeText, getFlawStatusText, getPartStatusText } from '../../utils';
 
+type AddModalType = 'maintenance' | 'flaw' | 'part' | null;
+
 const DetailPage: React.FC = () => {
   const router = useRouter();
-  const { getCollectionById, updateCollection, deleteCollection } = useCollection();
+  const {
+    getCollectionById,
+    updateCollection,
+    deleteCollection,
+    addMaintenanceRecord,
+    addFlawRecord,
+    addReplacementPart,
+    updateFlawStatus,
+    updatePartStatus
+  } = useCollection();
   const [activeTab, setActiveTab] = useState<'flaws' | 'parts' | 'maintenance'>('flaws');
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [showAddModal, setShowAddModal] = useState<AddModalType>(null);
+
+  const [maintForm, setMaintForm] = useState({
+    type: 'dust' as 'dust' | 'light_protection' | 'other',
+    date: new Date().toISOString().split('T')[0],
+    description: ''
+  });
+  const [flawForm, setFlawForm] = useState({
+    description: '',
+    date: new Date().toISOString().split('T')[0],
+    status: 'pending' as 'pending' | 'resolved'
+  });
+  const [partForm, setPartForm] = useState({
+    description: '',
+    applyDate: new Date().toISOString().split('T')[0],
+    status: 'pending' as 'pending' | 'received'
+  });
 
   const id = router.params.id as string;
   const item = useMemo(() => getCollectionById(id), [id, getCollectionById]);
@@ -28,9 +56,9 @@ const DetailPage: React.FC = () => {
 
   const handleToggleUnboxed = () => {
     updateCollection(item.id, { isUnboxed: !item.isUnboxed });
-    Taro.showToast({ 
-      title: item.isUnboxed ? '已标记为未拆封' : '已标记为已拆封', 
-      icon: 'success' 
+    Taro.showToast({
+      title: item.isUnboxed ? '已标记为未拆封' : '已标记为已拆封',
+      icon: 'success'
     });
   };
 
@@ -51,12 +79,93 @@ const DetailPage: React.FC = () => {
     });
   };
 
-  const handleEdit = () => {
-    Taro.showToast({ title: '编辑功能开发中', icon: 'none' });
+  const handleAddMaintenance = () => {
+    setShowAddModal('maintenance');
   };
 
-  const handleAddMaintenance = () => {
-    Taro.showToast({ title: '添加维护记录功能开发中', icon: 'none' });
+  const handleAddFlaw = () => {
+    setShowAddModal('flaw');
+  };
+
+  const handleAddPart = () => {
+    setShowAddModal('part');
+  };
+
+  const handleSaveMaintenance = () => {
+    if (!maintForm.description.trim()) {
+      Taro.showToast({ title: '请输入维护描述', icon: 'none' });
+      return;
+    }
+    addMaintenanceRecord(item.id, {
+      type: maintForm.type,
+      date: maintForm.date,
+      description: maintForm.description.trim()
+    });
+    setShowAddModal(null);
+    setMaintForm({
+      type: 'dust',
+      date: new Date().toISOString().split('T')[0],
+      description: ''
+    });
+    setActiveTab('maintenance');
+    Taro.showToast({ title: '维护记录已添加', icon: 'success' });
+  };
+
+  const handleSaveFlaw = () => {
+    if (!flawForm.description.trim()) {
+      Taro.showToast({ title: '请输入瑕疵描述', icon: 'none' });
+      return;
+    }
+    addFlawRecord(item.id, {
+      description: flawForm.description.trim(),
+      date: flawForm.date,
+      photos: [],
+      status: flawForm.status
+    });
+    setShowAddModal(null);
+    setFlawForm({
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      status: 'pending'
+    });
+    setActiveTab('flaws');
+    Taro.showToast({ title: '瑕疵记录已添加', icon: 'success' });
+  };
+
+  const handleSavePart = () => {
+    if (!partForm.description.trim()) {
+      Taro.showToast({ title: '请输入补件描述', icon: 'none' });
+      return;
+    }
+    addReplacementPart(item.id, {
+      description: partForm.description.trim(),
+      applyDate: partForm.applyDate,
+      status: partForm.status
+    });
+    setShowAddModal(null);
+    setPartForm({
+      description: '',
+      applyDate: new Date().toISOString().split('T')[0],
+      status: 'pending'
+    });
+    setActiveTab('parts');
+    Taro.showToast({ title: '补件记录已添加', icon: 'success' });
+  };
+
+  const handleFlawStatusToggle = (flawId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'pending' ? 'resolved' : 'pending';
+    updateFlawStatus(item.id, flawId, newStatus);
+    Taro.showToast({ title: newStatus === 'resolved' ? '已标记为已解决' : '已标记为待处理', icon: 'success' });
+  };
+
+  const handlePartStatusToggle = (partId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'pending' ? 'received' : 'pending';
+    updatePartStatus(item.id, partId, newStatus);
+    Taro.showToast({ title: newStatus === 'received' ? '已标记为已收到' : '已标记为待补发', icon: 'success' });
+  };
+
+  const handleEdit = () => {
+    Taro.navigateTo({ url: `/pages/add/index?id=${item.id}` });
   };
 
   return (
@@ -158,7 +267,9 @@ const DetailPage: React.FC = () => {
             {item.balanceDueDate && (
               <View className={styles.metaItem}>
                 <Text className={styles.metaLabel}>尾款截止</Text>
-                <Text className={styles.metaValue}>{item.balanceDueDate}</Text>
+                <Text className={classnames(styles.metaValue, styles.warning)}>
+                  {item.balanceDueDate}
+                </Text>
               </View>
             )}
           </View>
@@ -194,74 +305,113 @@ const DetailPage: React.FC = () => {
 
         <View className={styles.listSection}>
           {activeTab === 'flaws' && (
-            item.flaws.length > 0 ? (
-              <View className={styles.list}>
-                {item.flaws.map(flaw => (
-                  <View key={flaw.id} className={styles.recordCard}>
-                    <View className={styles.recordHeader}>
-                      <View className={classnames(styles.statusBadge, flaw.status)}>
-                        <Text>{getFlawStatusText(flaw.status)}</Text>
+            <>
+              <View className={styles.sectionHeader}>
+                <Text className={styles.sectionTitle}>瑕疵记录</Text>
+                <Button className={styles.addRecordBtn} onClick={handleAddFlaw}>
+                  <Text>+ 添加</Text>
+                </Button>
+              </View>
+              {item.flaws.length > 0 ? (
+                <View className={styles.list}>
+                  {item.flaws.map(flaw => (
+                    <View key={flaw.id} className={styles.recordCard}>
+                      <View className={styles.recordHeader}>
+                        <View
+                          className={classnames(styles.statusBadge, flaw.status)}
+                          onClick={() => handleFlawStatusToggle(flaw.id, flaw.status)}
+                        >
+                          <Text>{getFlawStatusText(flaw.status)}</Text>
+                        </View>
+                        <Text className={styles.recordDate}>{flaw.date}</Text>
                       </View>
-                      <Text className={styles.recordDate}>{flaw.date}</Text>
+                      <Text className={styles.recordDesc}>{flaw.description}</Text>
                     </View>
-                    <Text className={styles.recordDesc}>{flaw.description}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <View className={styles.emptyState}>
-                <Text className={styles.emptyIcon}>✨</Text>
-                <Text className={styles.emptyText}>暂无瑕疵记录</Text>
-              </View>
-            )
+                  ))}
+                </View>
+              ) : (
+                <View className={styles.emptyState}>
+                  <Text className={styles.emptyIcon}>✨</Text>
+                  <Text className={styles.emptyText}>暂无瑕疵记录</Text>
+                  <Button className={styles.emptyAddBtn} onClick={handleAddFlaw}>
+                    <Text>添加瑕疵记录</Text>
+                  </Button>
+                </View>
+              )}
+            </>
           )}
 
           {activeTab === 'parts' && (
-            item.replacementParts.length > 0 ? (
-              <View className={styles.list}>
-                {item.replacementParts.map(part => (
-                  <View key={part.id} className={styles.recordCard}>
-                    <View className={styles.recordHeader}>
-                      <View className={classnames(styles.statusBadge, part.status)}>
-                        <Text>{getPartStatusText(part.status)}</Text>
+            <>
+              <View className={styles.sectionHeader}>
+                <Text className={styles.sectionTitle}>补件记录</Text>
+                <Button className={styles.addRecordBtn} onClick={handleAddPart}>
+                  <Text>+ 添加</Text>
+                </Button>
+              </View>
+              {item.replacementParts.length > 0 ? (
+                <View className={styles.list}>
+                  {item.replacementParts.map(part => (
+                    <View key={part.id} className={styles.recordCard}>
+                      <View className={styles.recordHeader}>
+                        <View
+                          className={classnames(styles.statusBadge, part.status)}
+                          onClick={() => handlePartStatusToggle(part.id, part.status)}
+                        >
+                          <Text>{getPartStatusText(part.status)}</Text>
+                        </View>
+                        <Text className={styles.recordDate}>
+                          {part.receivedDate ? `收到：${part.receivedDate}` : `申请：${part.applyDate}`}
+                        </Text>
                       </View>
-                      <Text className={styles.recordDate}>
-                        {part.receivedDate ? `收到：${part.receivedDate}` : `申请：${part.applyDate}`}
-                      </Text>
+                      <Text className={styles.recordDesc}>{part.description}</Text>
                     </View>
-                    <Text className={styles.recordDesc}>{part.description}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <View className={styles.emptyState}>
-                <Text className={styles.emptyIcon}>📦</Text>
-                <Text className={styles.emptyText}>暂无补件记录</Text>
-              </View>
-            )
+                  ))}
+                </View>
+              ) : (
+                <View className={styles.emptyState}>
+                  <Text className={styles.emptyIcon}>📦</Text>
+                  <Text className={styles.emptyText}>暂无补件记录</Text>
+                  <Button className={styles.emptyAddBtn} onClick={handleAddPart}>
+                    <Text>添加补件记录</Text>
+                  </Button>
+                </View>
+              )}
+            </>
           )}
 
           {activeTab === 'maintenance' && (
-            item.maintenanceRecords.length > 0 ? (
-              <View className={styles.list}>
-                {item.maintenanceRecords.map(record => (
-                  <View key={record.id} className={styles.recordCard}>
-                    <View className={styles.recordHeader}>
-                      <View className={classnames(styles.recordType, record.type)}>
-                        <Text>{getMaintenanceTypeText(record.type)}</Text>
+            <>
+              <View className={styles.sectionHeader}>
+                <Text className={styles.sectionTitle}>维护记录</Text>
+                <Button className={styles.addRecordBtn} onClick={handleAddMaintenance}>
+                  <Text>+ 添加</Text>
+                </Button>
+              </View>
+              {item.maintenanceRecords.length > 0 ? (
+                <View className={styles.list}>
+                  {item.maintenanceRecords.map(record => (
+                    <View key={record.id} className={styles.recordCard}>
+                      <View className={styles.recordHeader}>
+                        <View className={classnames(styles.recordType, record.type)}>
+                          <Text>{getMaintenanceTypeText(record.type)}</Text>
+                        </View>
+                        <Text className={styles.recordDate}>{record.date}</Text>
                       </View>
-                      <Text className={styles.recordDate}>{record.date}</Text>
+                      <Text className={styles.recordDesc}>{record.description}</Text>
                     </View>
-                    <Text className={styles.recordDesc}>{record.description}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <View className={styles.emptyState}>
-                <Text className={styles.emptyIcon}>📋</Text>
-                <Text className={styles.emptyText}>暂无维护记录</Text>
-              </View>
-            )
+                  ))}
+                </View>
+              ) : (
+                <View className={styles.emptyState}>
+                  <Text className={styles.emptyIcon}>📋</Text>
+                  <Text className={styles.emptyText}>暂无维护记录</Text>
+                  <Button className={styles.emptyAddBtn} onClick={handleAddMaintenance}>
+                    <Text>添加维护记录</Text>
+                  </Button>
+                </View>
+              )}
+            </>
           )}
         </View>
       </ScrollView>
@@ -292,6 +442,156 @@ const DetailPage: React.FC = () => {
           <Text>删除</Text>
         </Button>
       </View>
+
+      {showAddModal && (
+        <View className={styles.modalOverlay} onClick={() => setShowAddModal(null)}>
+          <View className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            {showAddModal === 'maintenance' && (
+              <>
+                <Text className={styles.modalTitle}>添加维护记录</Text>
+                <View className={styles.typeSelector}>
+                  {(['dust', 'light_protection', 'other'] as const).map(t => (
+                    <Button
+                      key={t}
+                      className={classnames(styles.typeOption, maintForm.type === t && styles.typeActive)}
+                      onClick={() => setMaintForm(prev => ({ ...prev, type: t }))}
+                    >
+                      <Text>{getMaintenanceTypeText(t)}</Text>
+                    </Button>
+                  ))}
+                </View>
+                <View className={styles.modalField}>
+                  <Text className={styles.modalLabel}>维护日期</Text>
+                  <Input
+                    className={styles.modalInput}
+                    type="text"
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#64748B"
+                    value={maintForm.date}
+                    onInput={(e) => setMaintForm(prev => ({ ...prev, date: e.detail.value }))}
+                  />
+                </View>
+                <View className={styles.modalField}>
+                  <Text className={styles.modalLabel}>维护描述</Text>
+                  <Textarea
+                    className={styles.modalTextarea}
+                    placeholder="描述维护内容，如除尘部位、避光措施等"
+                    placeholderTextColor="#64748B"
+                    value={maintForm.description}
+                    onInput={(e) => setMaintForm(prev => ({ ...prev, description: e.detail.value }))}
+                  />
+                </View>
+                <View className={styles.modalActions}>
+                  <Button className={styles.modalCancelBtn} onClick={() => setShowAddModal(null)}>
+                    <Text>取消</Text>
+                  </Button>
+                  <Button className={styles.modalConfirmBtn} onClick={handleSaveMaintenance}>
+                    <Text>保存</Text>
+                  </Button>
+                </View>
+              </>
+            )}
+
+            {showAddModal === 'flaw' && (
+              <>
+                <Text className={styles.modalTitle}>添加瑕疵记录</Text>
+                <View className={styles.modalField}>
+                  <Text className={styles.modalLabel}>发现日期</Text>
+                  <Input
+                    className={styles.modalInput}
+                    type="text"
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#64748B"
+                    value={flawForm.date}
+                    onInput={(e) => setFlawForm(prev => ({ ...prev, date: e.detail.value }))}
+                  />
+                </View>
+                <View className={styles.modalField}>
+                  <Text className={styles.modalLabel}>瑕疵描述</Text>
+                  <Textarea
+                    className={styles.modalTextarea}
+                    placeholder="描述瑕疵情况，如掉漆、变形等"
+                    placeholderTextColor="#64748B"
+                    value={flawForm.description}
+                    onInput={(e) => setFlawForm(prev => ({ ...prev, description: e.detail.value }))}
+                  />
+                </View>
+                <View className={styles.typeSelector}>
+                  <Button
+                    className={classnames(styles.typeOption, flawForm.status === 'pending' && styles.typeActive)}
+                    onClick={() => setFlawForm(prev => ({ ...prev, status: 'pending' }))}
+                  >
+                    <Text>待处理</Text>
+                  </Button>
+                  <Button
+                    className={classnames(styles.typeOption, flawForm.status === 'resolved' && styles.typeActive)}
+                    onClick={() => setFlawForm(prev => ({ ...prev, status: 'resolved' }))}
+                  >
+                    <Text>已解决</Text>
+                  </Button>
+                </View>
+                <View className={styles.modalActions}>
+                  <Button className={styles.modalCancelBtn} onClick={() => setShowAddModal(null)}>
+                    <Text>取消</Text>
+                  </Button>
+                  <Button className={styles.modalConfirmBtn} onClick={handleSaveFlaw}>
+                    <Text>保存</Text>
+                  </Button>
+                </View>
+              </>
+            )}
+
+            {showAddModal === 'part' && (
+              <>
+                <Text className={styles.modalTitle}>添加补件记录</Text>
+                <View className={styles.modalField}>
+                  <Text className={styles.modalLabel}>申请日期</Text>
+                  <Input
+                    className={styles.modalInput}
+                    type="text"
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#64748B"
+                    value={partForm.applyDate}
+                    onInput={(e) => setPartForm(prev => ({ ...prev, applyDate: e.detail.value }))}
+                  />
+                </View>
+                <View className={styles.modalField}>
+                  <Text className={styles.modalLabel}>补件描述</Text>
+                  <Textarea
+                    className={styles.modalTextarea}
+                    placeholder="描述需要补发的配件信息"
+                    placeholderTextColor="#64748B"
+                    value={partForm.description}
+                    onInput={(e) => setPartForm(prev => ({ ...prev, description: e.detail.value }))}
+                  />
+                </View>
+                <View className={styles.typeSelector}>
+                  <Button
+                    className={classnames(styles.typeOption, partForm.status === 'pending' && styles.typeActive)}
+                    onClick={() => setPartForm(prev => ({ ...prev, status: 'pending' }))}
+                  >
+                    <Text>待补发</Text>
+                  </Button>
+                  <Button
+                    className={classnames(styles.typeOption, partForm.status === 'received' && styles.typeActive)}
+                    onClick={() => setPartForm(prev => ({ ...prev, status: 'received' }))}
+                  >
+                    <Text>已收到</Text>
+                  </Button>
+                </View>
+                <View className={styles.modalActions}>
+                  <Button className={styles.modalCancelBtn} onClick={() => setShowAddModal(null)}>
+                    <Text>取消</Text>
+                  </Button>
+                  <Button className={styles.modalConfirmBtn} onClick={handleSavePart}>
+                    <Text>保存</Text>
+                  </Button>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      )}
     </View>
   );
 };

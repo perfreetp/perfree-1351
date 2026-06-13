@@ -6,9 +6,10 @@ import styles from './index.module.scss';
 import { useCollection } from '../../store/CollectionContext';
 import PlanCard from '../../components/PlanCard';
 import { CollectionItem } from '../../types/collection';
+import { getDaysUntil, formatPrice } from '../../utils';
 
 const PlanPage: React.FC = () => {
-  const { collections, updateCollection } = useCollection();
+  const { collections, markArrived, markBalancePaid } = useCollection();
   const [activeTab, setActiveTab] = useState<'pending' | 'arrived'>('pending');
 
   const pendingItems = useMemo(() => {
@@ -33,14 +34,23 @@ const PlanPage: React.FC = () => {
       });
   }, [collections]);
 
+  const urgentPendingItems = useMemo(() => {
+    return pendingItems.filter(item => {
+      if (!item.balanceDueDate) return false;
+      const days = getDaysUntil(item.balanceDueDate);
+      return days <= 7;
+    });
+  }, [pendingItems]);
+
   const handlePayBalance = (item: CollectionItem) => {
     Taro.showModal({
       title: '支付尾款',
-      content: `确认支付 ${item.characterName} 的尾款 ¥${item.purchasePrice}？`,
+      content: `确认支付「${item.characterName}」的尾款 ${formatPrice(item.purchasePrice)}？支付后尾款截止日期将清除。`,
+      confirmColor: '#F59E0B',
       success: (res) => {
         if (res.confirm) {
-          Taro.showToast({ title: '支付成功', icon: 'success' });
-          console.log('[Plan] Paid balance for:', item.id);
+          markBalancePaid(item.id);
+          Taro.showToast({ title: '尾款已支付', icon: 'success' });
         }
       }
     });
@@ -49,15 +59,11 @@ const PlanPage: React.FC = () => {
   const handleMarkArrived = (item: CollectionItem) => {
     Taro.showModal({
       title: '标记到货',
-      content: `确认 ${item.characterName} 已到货？`,
+      content: `确认「${item.characterName}」已到货？到货后将从待到货移至已到货列表。`,
+      confirmColor: '#10B981',
       success: (res) => {
         if (res.confirm) {
-          updateCollection(item.id, {
-            hasArrived: true,
-            arrivalDate: new Date().toISOString().split('T')[0],
-            isUnboxed: false,
-            displayLocation: '待摆放'
-          });
+          markArrived(item.id);
           Taro.showToast({ title: '已标记到货', icon: 'success' });
         }
       }
@@ -88,11 +94,20 @@ const PlanPage: React.FC = () => {
         </View>
         <View className={styles.statCard}>
           <Text className={styles.statValue}>
-            ¥{pendingItems.reduce((sum, item) => sum + item.purchasePrice, 0).toLocaleString()}
+            {formatPrice(pendingItems.reduce((sum, item) => sum + item.purchasePrice, 0))}
           </Text>
           <Text className={styles.statLabel}>待支付</Text>
         </View>
       </View>
+
+      {urgentPendingItems.length > 0 && activeTab === 'pending' && (
+        <View className={styles.urgentBanner}>
+          <Text className={styles.urgentIcon}>⚠️</Text>
+          <Text className={styles.urgentText}>
+            {urgentPendingItems.length} 件手办尾款即将到期或已逾期
+          </Text>
+        </View>
+      )}
 
       <View className={styles.tabBar}>
         <Button
@@ -138,8 +153,8 @@ const PlanPage: React.FC = () => {
             {arrivedItems.length > 0 ? (
               <View className={styles.list}>
                 {arrivedItems.slice(0, 10).map(item => (
-                  <View 
-                    key={item.id} 
+                  <View
+                    key={item.id}
                     className={styles.arrivedItem}
                     onClick={() => handleItemClick(item)}
                   >
@@ -158,6 +173,7 @@ const PlanPage: React.FC = () => {
                       <Text className={styles.arrivedName}>{item.characterName}</Text>
                       <Text className={styles.arrivedSeries}>{item.seriesName}</Text>
                       <Text className={styles.arrivedDate}>到货日期：{item.arrivalDate}</Text>
+                      <Text className={styles.arrivedLocation}>摆放位置：{item.displayLocation}</Text>
                     </View>
                   </View>
                 ))}
